@@ -55,6 +55,19 @@ conda-lock lock --file environment.yml --lockfile gleiswerk.conda-lock.yml \
   --platform osx-arm64 --platform osx-64 --platform linux-64 --platform win-64
 ```
 
+## Building the Conda package
+
+The Conda recipe reads the package version from `pyproject.toml`; do not add a
+second version value to the recipe. Build and test the package locally with:
+
+```console
+conda-build --override-channels --channel conda-forge conda-recipe
+```
+
+The recipe builds one platform-independent `noarch: python` artifact. It
+installs that artifact in a fresh test environment and verifies the package
+import plus `gleiswerk --help` and `gleiswerk --version`.
+
 Gleiswerk releases are distributed through the `micknudsen` Conda channel.
 The project will not be published to PyPI.
 

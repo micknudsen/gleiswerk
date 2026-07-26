@@ -9,4 +9,5 @@ dependencies:
   - ruff >=0.12
   - pyright >=1.1
   - conda-lock >=3
+  - conda-build >=25
   - setuptools >=77

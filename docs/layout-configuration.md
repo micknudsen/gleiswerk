@@ -148,6 +148,62 @@ ERROR E203 routes.arrival-to-platform-1.turnouts.west-entry:
 The exact error-code registry will be introduced with the first validator, but
 the path form and deterministic ordering are part of this contract.
 
+## Loading API and error codes
+
+Python callers load a layout through the configuration boundary, not through a
+CLI-specific function:
+
+```python
+from pathlib import Path
+
+from gleiswerk.layout_config import LayoutConfigurationError, load_layout
+
+try:
+    layout = load_layout(Path("layout.toml"))
+except LayoutConfigurationError as error:
+    for diagnostic in error.diagnostics:
+        print(diagnostic.format())
+```
+
+`load_layout` accepts only an existing, readable regular file whose suffix is
+exactly lowercase `.toml`. It raises `LayoutConfigurationError` for file,
+encoding, TOML syntax, and structural-validation failures. Each error contains
+an ordered tuple of `Diagnostic` values. A diagnostic keeps the source filename
+separate from its configuration path, allowing non-CLI consumers to identify a
+field without parsing display text:
+
+```text
+diagnostic.source == Path("layout.toml")
+diagnostic.path == "routes.arrival-to-platform-1.turnouts.west-entry"
+```
+
+Diagnostic codes are stable and grouped by concern:
+
+| Range | Concern |
+| --- | --- |
+| `E0xx` | File suffix/access, UTF-8 decoding, and TOML syntax. |
+| `E1xx` | Schema vocabulary, types, identifiers, and local object rules. |
+| `E2xx` | Route references and turnout-position compatibility. |
+
+The version-1 registry is:
+
+| Code | Meaning |
+| --- | --- |
+| `E001` | File suffix is not exactly `.toml`. |
+| `E002` | Path is not an existing regular file. |
+| `E003` | File is not UTF-8 text. |
+| `E004` | File cannot be read. |
+| `E005` | TOML syntax is invalid. |
+| `E100` | Parsed configuration is not a table. |
+| `E101`–`E105` | Top-level required fields, version, vocabulary, or collection-table shape is invalid. |
+| `E106`–`E107` | Object vocabulary or display name is invalid. |
+| `E110`–`E111` | Block ID or block-table shape is invalid. |
+| `E120`–`E126` | Turnout ID, table shape, or positions are invalid. |
+| `E130`–`E139` | Route ID, table shape, blocks, or turnout requirements are invalid. |
+| `E201` | A route references an unknown block. |
+| `E202` | A route references an unknown turnout. |
+| `E203` | A route requires a position unsupported by its turnout. |
+
 Unknown fields are errors at every level, including the top level. This catches
 misspellings and prevents a reader from silently ignoring configuration. A
 field introduced in a later version requires that later `schema-version`.

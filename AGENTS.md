@@ -6,6 +6,9 @@
   settings unless the user explicitly requests that action.
 - Never commit changes unless the user explicitly asks to commit in the current
   conversation. Leave changes uncommitted for review and local testing first.
+- Open pull requests ready for review by default. Create a draft only when the
+  user explicitly requests a draft or the work is genuinely incomplete and
+  must be shared before it is ready for review.
 - Before proposing or implementing a substantial change, keep scope narrow and
   explain the intended outcome and verification.
 - Preserve unrelated user changes in the worktree.

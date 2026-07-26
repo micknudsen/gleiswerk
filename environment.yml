@@ -3,13 +3,13 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
-  - python >=3.11
+  - python>=3.14.6
   - pip
   - pytest >=8
-  - ruff >=0.12
-  - pyright >=1.1
+  - ruff>=0.16.0
+  - pyright>=1.1.411
   - conda-lock >=3
   - conda-build >=25
   - anaconda-client >=1
-  - mkdocs-material >=9.6
+  - mkdocs-material>=9.7.7
   - setuptools >=77

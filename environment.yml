@@ -9,7 +9,7 @@ dependencies:
   - ruff >=0.12
   - pyright >=1.1
   - conda-lock >=3
-  - conda-build >=25
+  - conda-build>=26.5.0
   - anaconda-client >=1
   - mkdocs-material >=9.6
   - setuptools >=77

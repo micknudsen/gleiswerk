@@ -4,19 +4,17 @@ Gleiswerk currently provides a small command-line package. The supported
 development environment is Conda using packages from conda-forge.
 
 ```shell
-conda env create --file environment.yml
-conda activate gleiswerk-dev
-python -m pip install --no-deps --no-build-isolation --editable .
-gleiswerk --version
+python scripts/update_dev_environment.py
 ```
 
-To use the exact resolved development dependencies, create the environment
-from the checked-in multi-platform lockfile instead:
+The script creates `gleiswerk-dev` if it does not exist, updates it from the
+checked-in multi-platform lockfile, and installs the current checkout in
+editable mode. It works whether the environment is active or not. Activate the
+environment afterwards when you want to work in it:
 
 ```shell
-conda-lock install --name gleiswerk-dev gleiswerk.conda-lock.yml
 conda activate gleiswerk-dev
-python -m pip install --no-deps --no-build-isolation --editable .
+gleiswerk --version
 ```
 
 Run the complete local quality suite before opening a pull request:

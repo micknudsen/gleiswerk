@@ -17,6 +17,18 @@ conda-lock lock --micromamba --file environment.yml \
 
 Commit both files. The CI lockfile job verifies that they stay in sync.
 
+To create or refresh the local development environment from the committed lock
+file, run this from the repository root:
+
+```shell
+python scripts/update_dev_environment.py
+```
+
+It works whether `gleiswerk-dev` already exists or is active. The first run
+bootstraps it from `environment.yml`; every run then reconciles it with
+`gleiswerk.conda-lock.yml` and installs the checkout editable with pip
+dependency installation disabled.
+
 The `Update Conda lockfile` workflow refreshes the resolved dependencies every
 Monday at 06:20 UTC and can also be started manually from the Actions tab. It
 creates or updates one `chore/conda-lock-update` pull request, so review and CI

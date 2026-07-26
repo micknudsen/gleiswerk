@@ -1,0 +1,129 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
+    defaults:
+      run:
+        shell: bash -leo pipefail {0}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up locked Conda environment
+        uses: mamba-org/setup-micromamba@ce51e99f4bb8a82ab7158c4dc59ef4634c59c4f9 # v3
+        with:
+          environment-file: gleiswerk.conda-lock.yml
+          environment-name: gleiswerk-ci
+          init-shell: bash
+          post-cleanup: environment
+
+      - name: Install Gleiswerk
+        run: python -m pip install --no-deps --no-build-isolation --editable .
+
+      - name: Check formatting
+        run: ruff format --check .
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Type check
+        run: pyright
+
+      - name: Test
+        run: python -m pytest
+
+  lockfile:
+    name: Lockfile
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash -leo pipefail {0}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up locked Conda environment
+        uses: mamba-org/setup-micromamba@ce51e99f4bb8a82ab7158c4dc59ef4634c59c4f9 # v3
+        with:
+          environment-file: gleiswerk.conda-lock.yml
+          environment-name: gleiswerk-lock
+          init-shell: bash
+          post-cleanup: environment
+
+      - name: Verify lockfile is current
+        run: |
+          conda-lock lock --micromamba --file environment.yml \
+            --lockfile gleiswerk.conda-lock.yml \
+            --platform osx-arm64 --platform osx-64 --platform linux-64 --platform win-64
+          git diff --exit-code -- gleiswerk.conda-lock.yml
+
+  package:
+    name: Conda package
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash -leo pipefail {0}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up locked Conda environment
+        uses: mamba-org/setup-micromamba@ce51e99f4bb8a82ab7158c4dc59ef4634c59c4f9 # v3
+        with:
+          environment-file: gleiswerk.conda-lock.yml
+          environment-name: gleiswerk-package
+          init-shell: bash
+          post-cleanup: environment
+
+      - name: Build and test Conda package
+        run: |
+          conda-build --override-channels --channel conda-forge \
+            --output-folder "${RUNNER_TEMP}/conda-bld" conda-recipe
+
+  documentation:
+    name: Documentation
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash -leo pipefail {0}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up locked Conda environment
+        uses: mamba-org/setup-micromamba@ce51e99f4bb8a82ab7158c4dc59ef4634c59c4f9 # v3
+        with:
+          environment-file: gleiswerk.conda-lock.yml
+          environment-name: gleiswerk-docs
+          init-shell: bash
+          post-cleanup: environment
+
+      - name: Build documentation
+        run: mkdocs build --strict

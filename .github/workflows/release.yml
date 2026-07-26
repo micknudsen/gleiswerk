@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build release package
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash -leo pipefail {0}
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up locked Conda environment
+        uses: mamba-org/setup-micromamba@ce51e99f4bb8a82ab7158c4dc59ef4634c59c4f9 # v3
+        with:
+          environment-file: gleiswerk.conda-lock.yml
+          environment-name: gleiswerk-release
+          init-shell: bash
+          post-cleanup: environment
+
+      - name: Verify release tag matches package version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          package_version="$(python -c 'from pathlib import Path; import tomllib; print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])')"
+          test "${RELEASE_TAG}" = "v${package_version}"
+
+      - name: Build and test Conda package
+        run: |
+          conda-build --override-channels --channel conda-forge \
+            --output-folder "${RUNNER_TEMP}/conda-bld" conda-recipe
+
+      - name: Upload release package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: conda-package
+          path: ${{ runner.temp }}/conda-bld/noarch/gleiswerk-*.conda
+          if-no-files-found: error
+
+  publish:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    environment: conda
+    permissions:
+      contents: write
+
+    defaults:
+      run:
+        shell: bash -leo pipefail {0}
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up locked Conda environment
+        uses: mamba-org/setup-micromamba@ce51e99f4bb8a82ab7158c4dc59ef4634c59c4f9 # v3
+        with:
+          environment-file: gleiswerk.conda-lock.yml
+          environment-name: gleiswerk-publish
+          init-shell: bash
+          post-cleanup: environment
+
+      - name: Download release package
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: conda-package
+          path: conda-package
+
+      - name: Upload to the micknudsen channel
+        env:
+          ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_API_TOKEN }}
+        run: anaconda --token "$ANACONDA_API_TOKEN" upload --user micknudsen --label main conda-package/*.conda
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release create "$RELEASE_TAG" conda-package/*.conda --generate-notes --title "$RELEASE_TAG"

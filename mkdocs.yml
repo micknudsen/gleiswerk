@@ -1,0 +1,31 @@
+site_name: Gleiswerk
+site_description: Local-first model railway control and automation
+site_url: https://micknudsen.github.io/gleiswerk/
+repo_url: https://github.com/micknudsen/gleiswerk
+repo_name: micknudsen/gleiswerk
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.action.edit
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Concepts: concepts.md
+  - Architecture: architecture.md
+  - Development: development.md
+  - Decisions:
+      - Overview: adr/README.md
+      - Runtime and platform support: adr/0001-runtime-and-platform-support.md
+      - Distribution and release trigger: adr/0002-distribution-and-release-trigger.md
+      - Quality and dependency reproducibility: adr/0003-quality-and-dependency-reproducibility.md
+      - Conda package recipe: adr/0004-conda-package-recipe.md
+      - Documentation and release automation: adr/0005-documentation-and-release-automation.md

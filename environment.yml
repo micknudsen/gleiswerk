@@ -1,0 +1,15 @@
+name: gleiswerk-dev
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python >=3.11
+  - pip
+  - pytest >=8
+  - ruff >=0.12
+  - pyright >=1.1
+  - conda-lock >=3
+  - conda-build >=25
+  - anaconda-client >=1
+  - mkdocs-material >=9.6
+  - setuptools >=77

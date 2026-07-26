@@ -51,6 +51,9 @@
 
 - `master` is the default branch. Treat it as PR-only; do not push directly.
 - Use conventional-style commit titles when the user requests a commit.
+- When a pull request fully resolves an issue, include a GitHub closing keyword
+  such as `Closes #123` in the PR description so GitHub closes the issue when
+  the PR is merged.
 - Do not weaken branch protection, required checks, or release-environment
   protections without explicit user approval.
 - GitHub CLI commands requiring the authenticated macOS Keychain must run with

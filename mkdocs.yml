@@ -21,6 +21,7 @@ nav:
   - Getting started: getting-started.md
   - Concepts: concepts.md
   - Architecture: architecture.md
+  - Layout configuration: layout-configuration.md
   - Development: development.md
   - Decisions:
       - Overview: adr/README.md
@@ -29,3 +30,4 @@ nav:
       - Quality and dependency reproducibility: adr/0003-quality-and-dependency-reproducibility.md
       - Conda package recipe: adr/0004-conda-package-recipe.md
       - Documentation and release automation: adr/0005-documentation-and-release-automation.md
+      - Initial layout-configuration contract: adr/0006-layout-configuration-contract.md

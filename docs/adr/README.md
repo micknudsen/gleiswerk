@@ -8,3 +8,4 @@ their rationale, and their consequences.
 - [0003: Quality and dependency reproducibility](0003-quality-and-dependency-reproducibility.md)
 - [0004: Conda package recipe](0004-conda-package-recipe.md)
 - [0005: Documentation and release automation](0005-documentation-and-release-automation.md)
+- [0006: Initial layout-configuration contract](0006-layout-configuration-contract.md)

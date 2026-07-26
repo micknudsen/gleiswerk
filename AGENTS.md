@@ -53,3 +53,8 @@
 - Use conventional-style commit titles when the user requests a commit.
 - Do not weaken branch protection, required checks, or release-environment
   protections without explicit user approval.
+- GitHub CLI commands requiring the authenticated macOS Keychain must run with
+  sandbox escalation (`require_escalated`). The sandboxed environment cannot
+  access the Keychain and may incorrectly report the active `gh` token as
+  invalid. Verify with an escalated `gh auth status` before requesting
+  reauthentication.

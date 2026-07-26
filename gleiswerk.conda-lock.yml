@@ -3732,59 +3732,59 @@ package:
   category: main
   optional: false
 - name: gitpython
-  version: 3.1.56
+  version: 3.1.57
   manager: conda
   platform: linux-64
   dependencies:
     gitdb: '>=4.0.1,<5'
     python: '>=3.10'
     typing_extensions: '>=3.10.0.2'
-  url: https://conda.anaconda.org/conda-forge/noarch/gitpython-3.1.56-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/gitpython-3.1.57-pyhd8ed1ab_0.conda
   hash:
-    md5: dc575f5fd1a5ac9eb38942a9b1e7a894
-    sha256: 0994f995b545420ec4f33066145f43710937003e84146f51ec5bf482af491ffd
+    md5: e357116ee228bca0547d0889f94c0d49
+    sha256: 8c588eac7445c2d4c3adb865c1b46cd7249325bf1387da816591ef0f131b60ba
   category: main
   optional: false
 - name: gitpython
-  version: 3.1.56
+  version: 3.1.57
   manager: conda
   platform: osx-64
   dependencies:
     gitdb: '>=4.0.1,<5'
     python: '>=3.10'
     typing_extensions: '>=3.10.0.2'
-  url: https://conda.anaconda.org/conda-forge/noarch/gitpython-3.1.56-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/gitpython-3.1.57-pyhd8ed1ab_0.conda
   hash:
-    md5: dc575f5fd1a5ac9eb38942a9b1e7a894
-    sha256: 0994f995b545420ec4f33066145f43710937003e84146f51ec5bf482af491ffd
+    md5: e357116ee228bca0547d0889f94c0d49
+    sha256: 8c588eac7445c2d4c3adb865c1b46cd7249325bf1387da816591ef0f131b60ba
   category: main
   optional: false
 - name: gitpython
-  version: 3.1.56
+  version: 3.1.57
   manager: conda
   platform: osx-arm64
   dependencies:
     gitdb: '>=4.0.1,<5'
     python: '>=3.10'
     typing_extensions: '>=3.10.0.2'
-  url: https://conda.anaconda.org/conda-forge/noarch/gitpython-3.1.56-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/gitpython-3.1.57-pyhd8ed1ab_0.conda
   hash:
-    md5: dc575f5fd1a5ac9eb38942a9b1e7a894
-    sha256: 0994f995b545420ec4f33066145f43710937003e84146f51ec5bf482af491ffd
+    md5: e357116ee228bca0547d0889f94c0d49
+    sha256: 8c588eac7445c2d4c3adb865c1b46cd7249325bf1387da816591ef0f131b60ba
   category: main
   optional: false
 - name: gitpython
-  version: 3.1.56
+  version: 3.1.57
   manager: conda
   platform: win-64
   dependencies:
     gitdb: '>=4.0.1,<5'
     python: '>=3.10'
     typing_extensions: '>=3.10.0.2'
-  url: https://conda.anaconda.org/conda-forge/noarch/gitpython-3.1.56-pyhd8ed1ab_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/gitpython-3.1.57-pyhd8ed1ab_0.conda
   hash:
-    md5: dc575f5fd1a5ac9eb38942a9b1e7a894
-    sha256: 0994f995b545420ec4f33066145f43710937003e84146f51ec5bf482af491ffd
+    md5: e357116ee228bca0547d0889f94c0d49
+    sha256: 8c588eac7445c2d4c3adb865c1b46cd7249325bf1387da816591ef0f131b60ba
   category: main
   optional: false
 - name: h11
@@ -10932,51 +10932,51 @@ package:
   category: main
   optional: false
 - name: pytz
-  version: '2026.3'
+  version: 2026.3.post1
   manager: conda
   platform: linux-64
   dependencies:
     python: '>=3.10'
-  url: https://conda.anaconda.org/conda-forge/noarch/pytz-2026.3-pyhcf101f3_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/pytz-2026.3.post1-pyhcf101f3_0.conda
   hash:
-    md5: e2306bf1a9f9fa64c879f90f86fef086
-    sha256: 45406d07db5fd126ce6439865fa2fd14a0ccbf67f86c1c6113ec0cb4fff6117b
+    md5: eb2fb9070c0232e96ae5515d8b28e4f9
+    sha256: ad774abda71c759baef515983bfedbba34d56d6227974c23715c04612f812a90
   category: main
   optional: false
 - name: pytz
-  version: '2026.3'
+  version: 2026.3.post1
   manager: conda
   platform: osx-64
   dependencies:
     python: '>=3.10'
-  url: https://conda.anaconda.org/conda-forge/noarch/pytz-2026.3-pyhcf101f3_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/pytz-2026.3.post1-pyhcf101f3_0.conda
   hash:
-    md5: e2306bf1a9f9fa64c879f90f86fef086
-    sha256: 45406d07db5fd126ce6439865fa2fd14a0ccbf67f86c1c6113ec0cb4fff6117b
+    md5: eb2fb9070c0232e96ae5515d8b28e4f9
+    sha256: ad774abda71c759baef515983bfedbba34d56d6227974c23715c04612f812a90
   category: main
   optional: false
 - name: pytz
-  version: '2026.3'
+  version: 2026.3.post1
   manager: conda
   platform: osx-arm64
   dependencies:
     python: '>=3.10'
-  url: https://conda.anaconda.org/conda-forge/noarch/pytz-2026.3-pyhcf101f3_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/pytz-2026.3.post1-pyhcf101f3_0.conda
   hash:
-    md5: e2306bf1a9f9fa64c879f90f86fef086
-    sha256: 45406d07db5fd126ce6439865fa2fd14a0ccbf67f86c1c6113ec0cb4fff6117b
+    md5: eb2fb9070c0232e96ae5515d8b28e4f9
+    sha256: ad774abda71c759baef515983bfedbba34d56d6227974c23715c04612f812a90
   category: main
   optional: false
 - name: pytz
-  version: '2026.3'
+  version: 2026.3.post1
   manager: conda
   platform: win-64
   dependencies:
     python: '>=3.10'
-  url: https://conda.anaconda.org/conda-forge/noarch/pytz-2026.3-pyhcf101f3_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/pytz-2026.3.post1-pyhcf101f3_0.conda
   hash:
-    md5: e2306bf1a9f9fa64c879f90f86fef086
-    sha256: 45406d07db5fd126ce6439865fa2fd14a0ccbf67f86c1c6113ec0cb4fff6117b
+    md5: eb2fb9070c0232e96ae5515d8b28e4f9
+    sha256: ad774abda71c759baef515983bfedbba34d56d6227974c23715c04612f812a90
   category: main
   optional: false
 - name: pywin32

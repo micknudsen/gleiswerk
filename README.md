@@ -37,6 +37,24 @@ python -m pip install --no-deps --no-build-isolation --editable .
 python -m pytest
 ```
 
+Run the complete local quality suite with:
+
+```console
+ruff format --check .
+ruff check .
+pyright
+python -m pytest
+```
+
+`environment.yml` declares the development toolchain. Its resolved,
+multi-platform counterpart, `gleiswerk.conda-lock.yml`, is committed for
+reproducible environments. Update it after changing `environment.yml`:
+
+```console
+conda-lock lock --file environment.yml --lockfile gleiswerk.conda-lock.yml \
+  --platform osx-arm64 --platform osx-64 --platform linux-64 --platform win-64
+```
+
 Gleiswerk releases are distributed through the `micknudsen` Conda channel.
 The project will not be published to PyPI.
 

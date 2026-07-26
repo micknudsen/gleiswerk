@@ -6,4 +6,7 @@ dependencies:
   - python >=3.11
   - pip
   - pytest >=8
+  - ruff >=0.12
+  - pyright >=1.1
+  - conda-lock >=3
   - setuptools >=77

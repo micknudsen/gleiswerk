@@ -5,3 +5,4 @@ their rationale, and their consequences.
 
 - [0001: Runtime and platform support](0001-runtime-and-platform-support.md)
 - [0002: Distribution and release trigger](0002-distribution-and-release-trigger.md)
+- [0003: Quality and dependency reproducibility](0003-quality-and-dependency-reproducibility.md)

@@ -10,12 +10,14 @@ Edit `environment.yml` to change development tooling, then regenerate the
 shared lockfile for all supported platforms:
 
 ```shell
-conda-lock lock --micromamba --file environment.yml \
-  --lockfile gleiswerk.conda-lock.yml \
-  --platform osx-arm64 --platform osx-64 --platform linux-64 --platform win-64
+python scripts/update_conda_lockfile.py
 ```
 
-Commit both files. The CI lockfile job verifies that they stay in sync.
+The script runs `conda-lock` from `gleiswerk-dev` and updates
+`gleiswerk.conda-lock.yml` for macOS (Apple Silicon and Intel), Linux, and
+Windows. It does not change `environment.yml`; review and commit only the
+generated lockfile when its dependency updates are acceptable. The CI lockfile
+job verifies that the two files stay in sync.
 
 To create or refresh the local development environment from the committed lock
 file, run this from the repository root:

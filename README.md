@@ -44,6 +44,7 @@ ruff format --check .
 ruff check .
 pyright
 python -m pytest
+mkdocs build --strict
 ```
 
 `environment.yml` declares the development toolchain. Its resolved,
@@ -51,7 +52,7 @@ multi-platform counterpart, `gleiswerk.conda-lock.yml`, is committed for
 reproducible environments. Update it after changing `environment.yml`:
 
 ```console
-conda-lock lock --file environment.yml --lockfile gleiswerk.conda-lock.yml \
+conda-lock lock --micromamba --file environment.yml --lockfile gleiswerk.conda-lock.yml \
   --platform osx-arm64 --platform osx-64 --platform linux-64 --platform win-64
 ```
 
@@ -74,7 +75,8 @@ The project will not be published to PyPI.
 ## Project decisions
 
 Important technical and project decisions are recorded in
-[`docs/adr`](docs/adr).
+[`docs/adr`](docs/adr). The documentation site provides a concise
+[getting-started guide](docs/getting-started.md) and the evolving architecture.
 
 ## License
 

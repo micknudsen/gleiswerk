@@ -104,3 +104,26 @@ jobs:
         run: |
           conda-build --override-channels --channel conda-forge \
             --output-folder "${RUNNER_TEMP}/conda-bld" conda-recipe
+
+  documentation:
+    name: Documentation
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash -leo pipefail {0}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up locked Conda environment
+        uses: mamba-org/setup-micromamba@ce51e99f4bb8a82ab7158c4dc59ef4634c59c4f9 # v3
+        with:
+          environment-file: gleiswerk.conda-lock.yml
+          environment-name: gleiswerk-docs
+          init-shell: bash
+          post-cleanup: environment
+
+      - name: Build documentation
+        run: mkdocs build --strict

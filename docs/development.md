@@ -17,7 +17,8 @@ The script runs `conda-lock` from `gleiswerk-dev` and updates
 `gleiswerk.conda-lock.yml` for macOS (Apple Silicon and Intel), Linux, and
 Windows. It does not change `environment.yml`; review and commit only the
 generated lockfile when its dependency updates are acceptable. The CI lockfile
-job verifies that the two files stay in sync.
+job verifies that the lockfile's input matches `environment.yml`; it does not
+require newly published compatible packages to be locked immediately.
 
 To create or refresh the local development environment from the committed lock
 file, run this from the repository root:

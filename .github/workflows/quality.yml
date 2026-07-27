@@ -73,9 +73,9 @@ jobs:
           init-shell: bash
           post-cleanup: environment
 
-      - name: Verify lockfile is current
+      - name: Verify lockfile matches dependency declarations
         run: |
-          conda-lock lock --micromamba --file environment.yml \
+          conda-lock lock --check-input-hash --micromamba --file environment.yml \
             --lockfile gleiswerk.conda-lock.yml \
             --platform osx-arm64 --platform osx-64 --platform linux-64 --platform win-64
           git diff --exit-code -- gleiswerk.conda-lock.yml

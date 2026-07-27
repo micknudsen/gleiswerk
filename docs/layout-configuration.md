@@ -148,6 +148,12 @@ Validate a layout file before using it with other Gleiswerk commands:
 gleiswerk layout validate layout.toml
 ```
 
+For example, validate the shipped reference layout from a checkout:
+
+```console
+gleiswerk layout validate examples/reference-layout.toml
+```
+
 For a valid file, the command prints the supplied path and exits with status
 zero:
 

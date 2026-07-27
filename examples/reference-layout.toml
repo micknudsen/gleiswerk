@@ -1,0 +1,39 @@
+# Gleiswerk schema-version 1 reference layout.
+#
+# This configuration declares layout vocabulary only. It does not describe
+# topology, controller addresses, train movement, or operating behaviour.
+schema-version = 1
+
+[blocks.west-entry]
+display-name = "West entry"
+
+[blocks.platform-1]
+display-name = "Platform 1"
+
+[blocks.platform-2]
+display-name = "Platform 2"
+
+[blocks.east-exit]
+display-name = "East exit"
+
+[turnouts.west-throat]
+display-name = "West throat turnout"
+positions = ["normal", "reverse"]
+
+[turnouts.east-throat]
+display-name = "East throat turnout"
+positions = ["normal", "reverse"]
+
+[routes.west-to-platform-1]
+display-name = "West entry to platform 1"
+blocks = ["west-entry", "platform-1"]
+
+[routes.west-to-platform-1.turnouts]
+west-throat = "normal"
+
+[routes.platform-2-to-east]
+display-name = "Platform 2 to east exit"
+blocks = ["platform-2", "east-exit"]
+
+[routes.platform-2-to-east.turnouts]
+east-throat = "reverse"

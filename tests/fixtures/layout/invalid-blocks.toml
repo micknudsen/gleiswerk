@@ -1,0 +1,8 @@
+schema-version = 1
+
+[blocks]
+not-a-table = "invalid"
+
+[blocks."Bad_block"]
+display-name = false
+unexpected = true

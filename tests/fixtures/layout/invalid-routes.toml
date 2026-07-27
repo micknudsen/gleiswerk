@@ -1,0 +1,31 @@
+schema-version = 1
+
+[blocks.west-entry]
+
+[routes]
+not-a-table = "invalid"
+
+[routes."Bad_id"]
+display-name = false
+unexpected = true
+
+[routes.missing-blocks]
+
+[routes.blocks-not-array]
+blocks = "west-entry"
+
+[routes.empty-blocks]
+blocks = []
+
+[routes.invalid-block-ids]
+blocks = ["west-entry", "west-entry", "Bad_block"]
+
+[routes.turnouts-not-table]
+blocks = ["west-entry"]
+turnouts = "west-throat"
+
+[routes.invalid-turnout-requirements]
+blocks = ["west-entry"]
+
+[routes.invalid-turnout-requirements.turnouts]
+"Bad_id" = "Bad_position"

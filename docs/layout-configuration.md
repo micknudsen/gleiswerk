@@ -8,28 +8,20 @@ dispatching, simulator behaviour, or hardware behaviour.
 Each layout is a UTF-8 TOML file with the `.toml` extension. The examples use
 `layout.toml`.
 
-## Minimal vocabulary
+## Reference layout
 
-```toml
-schema-version = 1
+The compact [reference layout](https://github.com/micknudsen/gleiswerk/blob/master/examples/reference-layout.toml)
+exercises every version-1 vocabulary element: blocks, turnouts, routes, and
+turnout requirements. It is validated through the public command-line interface
+in the automated test suite, so it is the canonical full-layout example for
+this documentation. Like every version-1 layout, it is descriptive
+configuration only and does not imply operating behaviour.
 
-[blocks.west-entry]
-display-name = "West entry"
+The following conceptual track plan illustrates the names used by the reference
+layout. Schema version 1 does not encode or validate topology, so the diagram
+is explanatory only and does not authorize train movement.
 
-[blocks.platform-1]
-display-name = "Platform 1"
-
-[turnouts.west-entry]
-display-name = "West entry turnout"
-positions = ["normal", "reverse"]
-
-[routes.arrival-to-platform-1]
-display-name = "Arrival to platform 1"
-blocks = ["west-entry", "platform-1"]
-
-[routes.arrival-to-platform-1.turnouts]
-west-entry = "normal"
-```
+![Conceptual reference track plan](assets/images/reference-layout.svg)
 
 `schema-version` is required and is currently `1`. A reader must reject an
 unsupported version rather than guessing how to interpret it. An empty layout

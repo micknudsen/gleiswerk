@@ -9,3 +9,4 @@ their rationale, and their consequences.
 - [0004: Conda package recipe](0004-conda-package-recipe.md)
 - [0005: Documentation and release automation](0005-documentation-and-release-automation.md)
 - [0006: Initial layout-configuration contract](0006-layout-configuration-contract.md)
+- [0007: Release preparation](0007-release-preparation.md)

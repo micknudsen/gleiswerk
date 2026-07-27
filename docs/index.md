@@ -10,7 +10,7 @@ path. It does not yet control railway hardware.
 ## Principles
 
 - Keep railway operation local and understandable.
-- Treat safety, explicit operator control, and observable behaviour as core
+- Treat safety, explicit operator control, and observable behavior as core
   design constraints.
 - Support development and use on macOS, Linux, and Windows through a
   Conda-based toolchain.

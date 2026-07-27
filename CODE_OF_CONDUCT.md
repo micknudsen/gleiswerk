@@ -3,10 +3,10 @@
 Gleiswerk is committed to a welcoming, respectful, and collaborative community.
 We expect participants to communicate in good faith, respect differing views
 and experiences, and avoid harassment, discrimination, intimidation, or other
-unacceptable behaviour.
+unacceptable behavior.
 
 Project maintainers may clarify, edit, or remove contributions and may take
-other appropriate action in response to behaviour that violates these
+other appropriate action in response to behavior that violates these
 standards.
 
 To report a concern, use a private message to the repository owner through

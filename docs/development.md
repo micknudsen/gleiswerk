@@ -2,7 +2,7 @@
 
 Development happens in the open through focused branches and pull requests to
 `master`. Keep a change small, describe its intent, and include tests and
-documentation when behaviour changes.
+documentation when behavior changes.
 
 ## Dependencies and locks
 

@@ -12,7 +12,7 @@ environment when you need the exact dependency set used in CI.
 
 1. Create a branch from current `master`.
 2. Keep the change focused and document user-visible or safety-relevant
-   behaviour.
+   behavior.
 3. Run formatting, linting, type checks, tests, and `mkdocs build --strict`.
 4. Open a pull request using the provided template.
 

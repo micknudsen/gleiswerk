@@ -62,6 +62,16 @@ def test_layout_validate_reports_success_for_a_valid_layout(tmp_path: Path) -> N
     assert result.stderr == ""
 
 
+def test_layout_validate_accepts_the_shipped_reference_layout() -> None:
+    example = Path("examples/reference-layout.toml")
+
+    result = run_module("layout", "validate", str(example))
+
+    assert result.returncode == 0
+    assert result.stdout == f"Layout is valid: {example}\n"
+    assert result.stderr == ""
+
+
 def test_layout_validate_reports_diagnostics_for_an_invalid_layout(
     tmp_path: Path,
 ) -> None:

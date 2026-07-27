@@ -148,6 +148,25 @@ ERROR E203 routes.arrival-to-platform-1.turnouts.west-entry:
 The exact error-code registry will be introduced with the first validator, but
 the path form and deterministic ordering are part of this contract.
 
+## Command-line validation
+
+Validate a layout file before using it with other Gleiswerk commands:
+
+```console
+gleiswerk layout validate layout.toml
+```
+
+For a valid file, the command prints the supplied path and exits with status
+zero:
+
+```text
+Layout is valid: layout.toml
+```
+
+For an invalid file, it exits with status 1 and writes the ordered diagnostics
+to standard error. Paths in both success messages and diagnostics are shown
+exactly as supplied on the command line.
+
 ## Loading API and error codes
 
 Python callers load a layout through the configuration boundary, not through a

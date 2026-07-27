@@ -69,7 +69,7 @@ def require_release_ready(tag: str, push: bool) -> bool:
     )
     tag_exists_locally = local_tag.returncode == 0
     if tag_exists_locally:
-        tag_type = run_git("cat-file", "--type", f"refs/tags/{tag}").stdout.strip()
+        tag_type = run_git("cat-file", "-t", f"refs/tags/{tag}").stdout.strip()
         if tag_type != "tag":
             raise ValueError(f"local tag must be annotated: {tag}")
 

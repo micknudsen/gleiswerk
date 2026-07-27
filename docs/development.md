@@ -31,17 +31,6 @@ bootstraps it from `environment.yml`; every run then reconciles it with
 `gleiswerk.conda-lock.yml` and installs the checkout editable with pip
 dependency installation disabled.
 
-The `Update Conda lockfile` workflow refreshes the resolved dependencies every
-Monday at 06:20 UTC and can also be started manually from the Actions tab. It
-creates or updates one `chore/conda-lock-update` pull request, so review and CI
-always see the complete lockfile change.
-
-For that pull request to trigger the normal `pull_request` checks, configure a
-repository secret named `DEPENDENCY_UPDATE_TOKEN` with a fine-grained personal
-access token (or GitHub App token) that has `contents: write` and
-`pull-requests: write` permissions for this repository. The default
-`GITHUB_TOKEN` cannot trigger those checks for a pull request it creates.
-
 ## Releases
 
 The release workflow is triggered by a pushed `v*` tag. A release tag must

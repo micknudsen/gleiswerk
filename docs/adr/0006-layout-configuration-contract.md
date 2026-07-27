@@ -31,7 +31,7 @@ For syntactically valid files, validation accumulates all contract violations
 and reports them in deterministic order with stable codes and configuration
 paths. Version 1 deliberately excludes physical topology, controller mapping,
 occupancy, commands, movement, signalling, route conflict detection,
-dispatching, hardware, and simulator behaviour.
+dispatching, hardware, and simulator behavior.
 
 The normative schema reference is [Layout configuration](../layout-configuration.md).
 

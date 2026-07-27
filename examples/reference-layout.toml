@@ -1,7 +1,7 @@
 # Gleiswerk schema-version 1 reference layout.
 #
 # This configuration declares layout vocabulary only. It does not describe
-# topology, controller addresses, train movement, or operating behaviour.
+# topology, controller addresses, train movement, or operating behavior.
 schema-version = 1
 
 [blocks.west-entry]

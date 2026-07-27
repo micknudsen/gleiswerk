@@ -16,21 +16,22 @@
 ## Development style
 
 - Prefer small, focused changes. One pull request should represent one coherent
-  concern: a safety rule, bug fix, schema addition, simulator behaviour,
+  concern: a safety rule, bug fix, schema addition, simulator behavior,
   documentation change, or adapter increment.
 - Design the automation core to be controller- and UI-independent. Hardware
   adapters, the simulator, CLI, Textual, and future web interfaces must not
   contain core safety logic.
 - Treat safety invariants as explicit, testable rules, not UI conventions.
-- Prefer local-first, configuration-driven, explainable behaviour.
+- Prefer local-first, configuration-driven, explainable behavior.
 - Keep the simulator able to exercise the same core model as real hardware.
 - Do not add unrestricted embedded scripting without explicit approval.
 - Record significant, durable technical decisions as ADRs with context,
   decision, alternatives, and consequences.
+- Use American English in source comments, documentation, and user-facing text.
 
 ## Testing and documentation
 
-- Add or update tests when changing behaviour.
+- Add or update tests when changing behavior.
 - Run relevant formatting, linting, typing, tests, package, and documentation
   checks before asking for review.
 - Documentation is documentation-as-code: keep it in Markdown, validate it

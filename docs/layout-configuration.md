@@ -3,7 +3,7 @@
 Gleiswerk v0.0.2 defines a small, versioned contract for describing a layout's
 named blocks, turnouts, and routes. It describes configuration data only; it
 does not define controller addresses, occupancy detection, movement, signals,
-dispatching, simulator behaviour, or hardware behaviour.
+dispatching, simulator behavior, or hardware behavior.
 
 Each layout is a UTF-8 TOML file with the `.toml` extension. The examples use
 `layout.toml`.
@@ -15,7 +15,7 @@ exercises every version-1 vocabulary element: blocks, turnouts, routes, and
 turnout requirements. It is validated through the public command-line interface
 in the automated test suite, so it is the canonical full-layout example for
 this documentation. Like every version-1 layout, it is descriptive
-configuration only and does not imply operating behaviour.
+configuration only and does not imply operating behavior.
 
 The following conceptual track plan illustrates the names used by the reference
 layout. Schema version 1 does not encode or validate topology, so the diagram
@@ -78,7 +78,7 @@ Each entry in `[turnouts]` declares a turnout. It permits these fields:
 local to their turnout: different turnouts may use different vocabularies.
 This describes selectable states only; it does not describe physical geometry,
 handedness, topology, or controller commands. A two-way turnout can use
-`normal` and `reverse`; a three-way turnout can use `left`, `centre`, and
+`normal` and `reverse`; a three-way turnout can use `left`, `center`, and
 `right`.
 
 ```toml
@@ -87,7 +87,7 @@ display-name = "West entry turnout"
 positions = ["normal", "reverse"]
 
 [turnouts.station-throat]
-positions = ["left", "centre", "right"]
+positions = ["left", "center", "right"]
 ```
 
 ### Routes

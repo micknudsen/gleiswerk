@@ -23,6 +23,7 @@ nav:
   - Architecture: architecture.md
   - Layout configuration: layout-configuration.md
   - Release notes:
+      - Guide: releases/README.md
       - v0.0.2: releases/v0.0.2.md
   - Development: development.md
   - Decisions:
@@ -33,3 +34,4 @@ nav:
       - Conda package recipe: adr/0004-conda-package-recipe.md
       - Documentation and release automation: adr/0005-documentation-and-release-automation.md
       - Initial layout-configuration contract: adr/0006-layout-configuration-contract.md
+      - Release preparation: adr/0007-release-preparation.md

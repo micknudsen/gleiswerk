@@ -87,4 +87,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_TAG" conda-package/*.conda --generate-notes --title "$RELEASE_TAG"
+        run: |
+          gh release create "$RELEASE_TAG" conda-package/*.conda \
+            --notes-file "docs/releases/${RELEASE_TAG}.md" --title "$RELEASE_TAG"

@@ -19,6 +19,15 @@ environment when you need the exact dependency set used in CI.
 `master` is intended to be protected: changes are reviewed through pull
 requests, merged with squash commits, and branches are deleted after merge.
 
+## Release preparation
+
+Prepare releases in dedicated pull requests. Each preparation updates the
+authoritative package version, commits release notes, and passes the complete
+local release gate before review. Tagging and publication require separate,
+explicit maintainer approval after the pull request is merged. See the
+[release process](docs/development.md#releases) and
+[release-notes guide](docs/releases/README.md).
+
 ## Dependency changes
 
 When changing `environment.yml`, regenerate and commit

@@ -12618,56 +12618,56 @@ package:
   category: main
   optional: false
 - name: tqdm
-  version: 4.69.1
+  version: 4.70.0
   manager: conda
   platform: linux-64
   dependencies:
     __unix: ''
     python: '>=3.10'
-  url: https://conda.anaconda.org/conda-forge/noarch/tqdm-4.69.1-pyh8f84b5b_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/tqdm-4.70.0-pyh8f84b5b_0.conda
   hash:
-    md5: 8ae65472028c1f401a8071cd15d73054
-    sha256: fd0b91e0ca6aa828a5938e3bfd767e99ecf561bcf14ab5e777bd13d66514fb76
+    md5: 00953c3b729e03b0ae21f49fdf3441bb
+    sha256: a4d9e9da15b13f1ab047e7db412e2ed564bc615832e80213cf129b973c3abf4a
   category: main
   optional: false
 - name: tqdm
-  version: 4.69.1
+  version: 4.70.0
   manager: conda
   platform: osx-64
   dependencies:
     __unix: ''
     python: '>=3.10'
-  url: https://conda.anaconda.org/conda-forge/noarch/tqdm-4.69.1-pyh8f84b5b_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/tqdm-4.70.0-pyh8f84b5b_0.conda
   hash:
-    md5: 8ae65472028c1f401a8071cd15d73054
-    sha256: fd0b91e0ca6aa828a5938e3bfd767e99ecf561bcf14ab5e777bd13d66514fb76
+    md5: 00953c3b729e03b0ae21f49fdf3441bb
+    sha256: a4d9e9da15b13f1ab047e7db412e2ed564bc615832e80213cf129b973c3abf4a
   category: main
   optional: false
 - name: tqdm
-  version: 4.69.1
+  version: 4.70.0
   manager: conda
   platform: osx-arm64
   dependencies:
     __unix: ''
     python: '>=3.10'
-  url: https://conda.anaconda.org/conda-forge/noarch/tqdm-4.69.1-pyh8f84b5b_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/tqdm-4.70.0-pyh8f84b5b_0.conda
   hash:
-    md5: 8ae65472028c1f401a8071cd15d73054
-    sha256: fd0b91e0ca6aa828a5938e3bfd767e99ecf561bcf14ab5e777bd13d66514fb76
+    md5: 00953c3b729e03b0ae21f49fdf3441bb
+    sha256: a4d9e9da15b13f1ab047e7db412e2ed564bc615832e80213cf129b973c3abf4a
   category: main
   optional: false
 - name: tqdm
-  version: 4.69.1
+  version: 4.70.0
   manager: conda
   platform: win-64
   dependencies:
     __win: ''
     colorama: ''
     python: '>=3.10'
-  url: https://conda.anaconda.org/conda-forge/noarch/tqdm-4.69.1-pyha7b4d00_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/tqdm-4.70.0-pyha7b4d00_0.conda
   hash:
-    md5: cc09c57ff1eb7c4d5a22b8548f324d2d
-    sha256: 1cd4a54eaf27ac3d5001ed6f33ab231747840626bb26da264254764e1bf8a4f1
+    md5: 7eac270516c8221cedc7f40a96d7fb8f
+    sha256: 669cd06a4c7c1139f9c6b9850d16d71c1b4ce42375806976a03dba824283fef0
   category: main
   optional: false
 - name: traitlets

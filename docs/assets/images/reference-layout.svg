@@ -2,22 +2,12 @@
   <title id="title">Conceptual Gleiswerk reference track plan</title>
   <desc id="description">A passing loop joins west entry and east exit through west and east throat turnouts, with platform 1 and platform 2 on parallel tracks.</desc>
   <defs>
-    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#f8fbff"/>
-      <stop offset="1" stop-color="#e9f1f8"/>
-    </linearGradient>
-    <linearGradient id="rail" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#e9eff5"/>
-      <stop offset="0.5" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#aebdca"/>
-    </linearGradient>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#1e3850" flood-opacity=".18"/>
     </filter>
     <style>
       .track-bed { fill: none; stroke: #243b53; stroke-width: 22; stroke-linecap: round; stroke-linejoin: round; }
-      .track { fill: none; stroke: url(#rail); stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; }
-      .sleeper { stroke: #8a9baa; stroke-width: 4; stroke-linecap: round; opacity: .82; }
+      .track { fill: none; stroke: #e9eff5; stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; }
       .block { fill: #ffffff; stroke: #b7c6d3; stroke-width: 2; }
       .block-name { font: 700 17px system-ui, sans-serif; fill: #18354d; text-anchor: middle; }
       .turnout { fill: #ffb84d; stroke: #b96c00; stroke-width: 3; }
@@ -25,21 +15,13 @@
     </style>
   </defs>
 
-  <rect y="120" width="1200" height="400" rx="28" fill="url(#background)"/>
+  <rect y="120" width="1200" height="400" rx="28" fill="#f8fbff"/>
   <!-- Track bed and rails -->
   <g>
     <path class="track-bed" d="M198 330 H300 C370 330 400 218 470 218 H730 C800 218 830 330 900 330 H1002"/>
     <path class="track-bed" d="M300 330 C370 330 400 422 470 422 H730 C800 422 830 330 900 330"/>
     <path class="track" d="M198 330 H300 C370 330 400 218 470 218 H730 C800 218 830 330 900 330 H1002"/>
     <path class="track" d="M300 330 C370 330 400 422 470 422 H730 C800 422 830 330 900 330"/>
-  </g>
-
-  <!-- Sleepers -->
-  <g class="sleeper">
-    <path d="M220 316v28 M246 316v28 M272 316v28"/>
-    <path d="M478 202v32 M510 202v32 M542 202v32 M574 202v32 M626 202v32 M658 202v32 M690 202v32 M722 202v32"/>
-    <path d="M478 406v32 M510 406v32 M542 406v32 M574 406v32 M626 406v32 M658 406v32 M690 406v32 M722 406v32"/>
-    <path d="M928 316v28 M954 316v28 M980 316v28"/>
   </g>
 
   <!-- Turnout symbols -->

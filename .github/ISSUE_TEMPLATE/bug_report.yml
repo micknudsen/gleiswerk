@@ -29,7 +29,7 @@ body:
     id: version
     attributes:
       label: Gleiswerk version
-      placeholder: 0.0.1
+      placeholder: 0.0.2
   - type: dropdown
     id: platform
     attributes:

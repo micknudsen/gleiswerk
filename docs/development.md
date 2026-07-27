@@ -35,6 +35,6 @@ dependency installation disabled.
 ## Releases
 
 The release workflow is triggered by a pushed `v*` tag. A release tag must
-match the version in `pyproject.toml`, for example `v0.0.1`. The workflow builds
+match the version in `pyproject.toml`, for example `v0.0.2`. The workflow builds
 and tests the Conda package, uploads it to the `micknudsen` Anaconda channel,
 and creates the corresponding GitHub release.

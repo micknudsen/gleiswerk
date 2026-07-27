@@ -8,8 +8,9 @@ automation system. It is being designed around a Märklin H0 reference layout
 while keeping its automation core independent of any particular command
 station.
 
-The project is in its initial foundation phase. The first release proves the
-packaging and delivery path before railway automation is introduced.
+Version 0.0.2 introduces validated, versioned layout configuration. It remains
+descriptive only: Gleiswerk does not yet control railway hardware or automate
+train movements.
 
 ## Command-line interface
 

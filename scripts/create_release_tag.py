@@ -41,8 +41,8 @@ def release_tag() -> str:
     return tag
 
 
-def require_release_ready(tag: str) -> None:
-    """Verify the checkout is safe to tag and has committed release notes."""
+def require_release_ready(tag: str, push: bool) -> bool:
+    """Verify readiness and report whether a safe local tag already exists."""
     branch = run_git("branch", "--show-current").stdout.strip()
     if branch != "master":
         raise ValueError(
@@ -67,8 +67,18 @@ def require_release_ready(tag: str) -> None:
     local_tag = run_git(
         "rev-parse", "--verify", "--quiet", f"refs/tags/{tag}", check=False
     )
-    if local_tag.returncode == 0:
-        raise ValueError(f"tag already exists locally: {tag}")
+    tag_exists_locally = local_tag.returncode == 0
+    if tag_exists_locally:
+        tag_type = run_git("cat-file", "--type", f"refs/tags/{tag}").stdout.strip()
+        if tag_type != "tag":
+            raise ValueError(f"local tag must be annotated: {tag}")
+
+        tagged_commit = run_git("rev-list", "--max-count=1", tag).stdout.strip()
+        if tagged_commit != head:
+            raise ValueError(f"local tag does not point to current master: {tag}")
+
+        if not push:
+            raise ValueError(f"tag already exists locally: {tag}")
 
     remote_tag = run_git(
         "ls-remote", "--exit-code", "--tags", "origin", f"refs/tags/{tag}", check=False
@@ -76,11 +86,16 @@ def require_release_ready(tag: str) -> None:
     if remote_tag.returncode == 0:
         raise ValueError(f"tag already exists on origin: {tag}")
 
+    return tag_exists_locally
 
-def create_tag(tag: str, push: bool) -> None:
-    """Create the local annotated tag and optionally push it to origin."""
-    run_git("tag", "--annotate", tag, "--message", f"Release {tag}")
-    print(f"Created local annotated tag {tag}.")
+
+def create_tag(tag: str, push: bool, tag_exists_locally: bool) -> None:
+    """Create or reuse the local annotated tag and optionally push it."""
+    if tag_exists_locally:
+        print(f"Reusing local annotated tag {tag}.")
+    else:
+        run_git("tag", "--annotate", tag, "--message", f"Release {tag}")
+        print(f"Created local annotated tag {tag}.")
 
     if push:
         run_git("push", "origin", tag)
@@ -105,9 +120,10 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> int:
     """Create a verified local release tag, optionally pushing it."""
     try:
+        arguments = parse_arguments()
         tag = release_tag()
-        require_release_ready(tag)
-        create_tag(tag, parse_arguments().push)
+        tag_exists_locally = require_release_ready(tag, arguments.push)
+        create_tag(tag, arguments.push, tag_exists_locally)
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         print(f"Release tag not created: {error}", file=sys.stderr)
         return 1

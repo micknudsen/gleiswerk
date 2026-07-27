@@ -895,51 +895,51 @@ package:
   category: main
   optional: false
 - name: backrefs
-  version: '7.0'
+  version: '8.0'
   manager: conda
   platform: linux-64
   dependencies:
     python: '>=3.10'
-  url: https://conda.anaconda.org/conda-forge/noarch/backrefs-7.0-pyhcf101f3_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/backrefs-8.0-pyhcf101f3_0.conda
   hash:
-    md5: 970a19304a794630a882b9dcd9e1beb4
-    sha256: 4e32871acb663d8d64342c486d960b3e64e24b7c715247a1e6a6f46d1b428802
+    md5: 775c265f0f4c94cd0bf125a0914f54aa
+    sha256: 8b3f31167895e32e494feba6849ad443e2e378ad422c8f1599d2d26ef77cbd80
   category: main
   optional: false
 - name: backrefs
-  version: '7.0'
+  version: '8.0'
   manager: conda
   platform: osx-64
   dependencies:
     python: '>=3.10'
-  url: https://conda.anaconda.org/conda-forge/noarch/backrefs-7.0-pyhcf101f3_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/backrefs-8.0-pyhcf101f3_0.conda
   hash:
-    md5: 970a19304a794630a882b9dcd9e1beb4
-    sha256: 4e32871acb663d8d64342c486d960b3e64e24b7c715247a1e6a6f46d1b428802
+    md5: 775c265f0f4c94cd0bf125a0914f54aa
+    sha256: 8b3f31167895e32e494feba6849ad443e2e378ad422c8f1599d2d26ef77cbd80
   category: main
   optional: false
 - name: backrefs
-  version: '7.0'
+  version: '8.0'
   manager: conda
   platform: osx-arm64
   dependencies:
     python: '>=3.10'
-  url: https://conda.anaconda.org/conda-forge/noarch/backrefs-7.0-pyhcf101f3_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/backrefs-8.0-pyhcf101f3_0.conda
   hash:
-    md5: 970a19304a794630a882b9dcd9e1beb4
-    sha256: 4e32871acb663d8d64342c486d960b3e64e24b7c715247a1e6a6f46d1b428802
+    md5: 775c265f0f4c94cd0bf125a0914f54aa
+    sha256: 8b3f31167895e32e494feba6849ad443e2e378ad422c8f1599d2d26ef77cbd80
   category: main
   optional: false
 - name: backrefs
-  version: '7.0'
+  version: '8.0'
   manager: conda
   platform: win-64
   dependencies:
     python: '>=3.10'
-  url: https://conda.anaconda.org/conda-forge/noarch/backrefs-7.0-pyhcf101f3_0.conda
+  url: https://conda.anaconda.org/conda-forge/noarch/backrefs-8.0-pyhcf101f3_0.conda
   hash:
-    md5: 970a19304a794630a882b9dcd9e1beb4
-    sha256: 4e32871acb663d8d64342c486d960b3e64e24b7c715247a1e6a6f46d1b428802
+    md5: 775c265f0f4c94cd0bf125a0914f54aa
+    sha256: 8b3f31167895e32e494feba6849ad443e2e378ad422c8f1599d2d26ef77cbd80
   category: main
   optional: false
 - name: beautifulsoup4

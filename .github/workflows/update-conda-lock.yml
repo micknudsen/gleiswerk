@@ -2,7 +2,8 @@ name: Update Conda lockfile
 
 on:
   schedule:
-    - cron: "20 6 * * 1"
+    - cron: "0 6 * * 1"
+      timezone: "Europe/Copenhagen"
   workflow_dispatch:
 
 permissions:

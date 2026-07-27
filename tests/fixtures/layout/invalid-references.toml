@@ -1,0 +1,13 @@
+schema-version = 1
+
+[blocks.known]
+
+[turnouts.west-throat]
+positions = ["normal", "reverse"]
+
+[routes.unknown-references]
+blocks = ["known", "missing"]
+
+[routes.unknown-references.turnouts]
+missing-turnout = "normal"
+west-throat = "straight"

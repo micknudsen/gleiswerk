@@ -4,8 +4,9 @@ Gleiswerk is a local-first control and automation project for model railways.
 It is being developed in public, starting with a deliberately small and
 reproducible distribution foundation.
 
-The first release, `0.0.1`, establishes the command-line package and delivery
-path. It does not yet control railway hardware.
+Release `0.0.2` adds a validated, versioned layout-configuration contract for
+named blocks, turnouts, and routes. It remains descriptive only and does not
+yet control railway hardware or automate train movements.
 
 ## Principles
 

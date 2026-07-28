@@ -37,5 +37,18 @@ with paths and codes, then construct these valid domain objects. The model has
 no dependency on the command-line interface, filesystem, simulator, or
 hardware adapters.
 
+## Route compatibility
+
+`gleiswerk.route_compatibility.compare_routes` compares two immutable `Route`
+declarations without reading files or interacting with a controller. It returns
+an immutable `RouteCompatibility` result containing consistently ordered,
+structured `RouteConflict` explanations. It identifies a conflict when the
+routes share a block or require different positions of the same turnout.
+
+The semantics are deliberately conservative: an identified conflict means the
+two route declarations are incompatible. Conversely, no identified conflict is
+not a movement authorization; it says nothing about reservations, occupancy,
+topology, commands, signals, or the safety of operating either route.
+
 The rationale for current cross-cutting decisions is recorded in the
 [ADRs](adr/README.md).

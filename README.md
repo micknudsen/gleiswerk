@@ -20,6 +20,7 @@ After installing the project in a development environment:
 gleiswerk --help
 gleiswerk --version
 gleiswerk layout validate layout.toml
+gleiswerk layout conflicts layout.toml
 ```
 
 The package can also be invoked as a Python module:

@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 120 1200 400" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 250 1200 240" role="img" aria-labelledby="title description">
   <title id="title">Conceptual Gleiswerk reference track plan</title>
-  <desc id="description">A passing loop joins west entry and east exit through west and east throat turnouts, with platform 1 and platform 2 on parallel tracks.</desc>
+  <desc id="description">Platform 1 forms the straight route between west entry and east exit. Platform 2 is a passing siding that diverges at the west throat turnout and rejoins at the east throat turnout.</desc>
   <defs>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#1e3850" flood-opacity=".18"/>
@@ -15,12 +15,12 @@
     </style>
   </defs>
 
-  <rect y="120" width="1200" height="400" rx="28" fill="#f8fbff"/>
+  <rect y="250" width="1200" height="240" rx="28" fill="#f8fbff"/>
   <!-- Track bed and rails -->
   <g>
-    <path class="track-bed" d="M198 330 H300 C370 330 400 218 470 218 H730 C800 218 830 330 900 330 H1002"/>
+    <path class="track-bed" d="M198 330 H1002"/>
     <path class="track-bed" d="M300 330 C370 330 400 422 470 422 H730 C800 422 830 330 900 330"/>
-    <path class="track" d="M198 330 H300 C370 330 400 218 470 218 H730 C800 218 830 330 900 330 H1002"/>
+    <path class="track" d="M198 330 H1002"/>
     <path class="track" d="M300 330 C370 330 400 422 470 422 H730 C800 422 830 330 900 330"/>
   </g>
 
@@ -31,18 +31,18 @@
     <circle cx="900" cy="330" r="27" class="turnout"/>
     <path d="M886 343 L914 317 M886 317 L914 343" stroke="#663d00" stroke-width="3" stroke-linecap="round"/>
   </g>
-  <text x="300" y="375" class="turnout-name">west-throat</text>
-  <text x="900" y="375" class="turnout-name">east-throat</text>
+  <text x="300" y="285" class="turnout-name">west-throat</text>
+  <text x="900" y="285" class="turnout-name">east-throat</text>
 
   <!-- Blocks -->
   <g filter="url(#shadow)">
     <rect x="70" y="292" width="128" height="76" rx="14" class="block"/>
-    <rect x="530" y="184" width="140" height="68" rx="14" class="block"/>
+    <rect x="530" y="296" width="140" height="68" rx="14" class="block"/>
     <rect x="530" y="388" width="140" height="68" rx="14" class="block"/>
     <rect x="1002" y="292" width="128" height="76" rx="14" class="block"/>
   </g>
   <text x="134" y="336" class="block-name">west-entry</text>
-  <text x="600" y="225" class="block-name">platform-1</text>
+  <text x="600" y="337" class="block-name">platform-1</text>
   <text x="600" y="429" class="block-name">platform-2</text>
   <text x="1066" y="336" class="block-name">east-exit</text>
 </svg>

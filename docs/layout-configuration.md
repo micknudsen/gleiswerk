@@ -165,6 +165,32 @@ For an invalid file, it exits with status 1 and writes the ordered diagnostics
 to standard error. Paths in both success messages and diagnostics are shown
 exactly as supplied on the command line.
 
+## Route-conflict analysis
+
+Analyze every pair of declared routes with the read-only compatibility model:
+
+```console
+gleiswerk layout conflicts layout.toml
+```
+
+The command loads a version-1 layout through the same configuration boundary as
+`layout validate`, so configuration failures retain the same ordered diagnostics
+on standard error and exit with status 1. A valid layout with no reported
+conflicts prints `No route conflicts: layout.toml` and exits with status 0. A
+valid layout with conflicts prints each stable explanation to standard output
+and exits with status 2.
+
+```text
+Route conflicts: layout.toml
+arrival-to-platform-1, departure-from-platform-1: shared block platform-1
+arrival-to-platform-1, departure-from-platform-1: incompatible turnout west-throat (normal, reverse)
+```
+
+Route pairs, conflict kinds, and resource IDs are ordered deterministically.
+The analysis only reports declared shared blocks and incompatible turnout
+positions; it does not reserve a route, set a turnout, authorize movement, or
+establish that conflict-free routes are safe to operate.
+
 ## Loading API and error codes
 
 Python callers load a layout through the configuration boundary, not through a

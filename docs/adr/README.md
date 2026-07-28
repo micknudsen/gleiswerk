@@ -10,3 +10,4 @@ their rationale, and their consequences.
 - [0005: Documentation and release automation](0005-documentation-and-release-automation.md)
 - [0006: Initial layout-configuration contract](0006-layout-configuration-contract.md)
 - [0007: Release preparation](0007-release-preparation.md)
+- [0008: Approval-gated milestone planning](0008-approved-milestone-planning.md)

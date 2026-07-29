@@ -14,8 +14,15 @@ The compact [reference layout](https://github.com/micknudsen/gleiswerk/blob/mast
 exercises every version-1 vocabulary element: blocks, turnouts, routes, and
 turnout requirements. It is validated through the public command-line interface
 in the automated test suite, so it is the canonical full-layout example for
-this documentation. Like every version-1 layout, it is descriptive
-configuration only and does not imply operating behavior.
+this documentation. Its two routes have no declared shared block or
+incompatible turnout requirement, so it is also the compatible route-pair
+example. Like every version-1 layout, it is descriptive configuration only and
+does not imply operating behavior.
+
+The checked-in [route-conflict example](https://github.com/micknudsen/gleiswerk/blob/master/examples/route-conflict-layout.toml)
+contains a pair that shares `platform-1` and requires opposite positions for
+`west-throat`. It demonstrates both kinds of reported conflict. Automated
+tests exercise both examples through the public `layout conflicts` command.
 
 The following conceptual track plan illustrates the names used by the reference
 layout. Schema version 1 does not encode or validate topology, so the diagram
@@ -180,6 +187,18 @@ conflicts prints `No route conflicts: layout.toml` and exits with status 0. A
 valid layout with conflicts prints each stable explanation to standard output
 and exits with status 2.
 
+The shipped examples demonstrate the two possible result categories:
+
+```console
+gleiswerk layout conflicts examples/reference-layout.toml
+# No route conflicts: examples/reference-layout.toml
+
+gleiswerk layout conflicts examples/route-conflict-layout.toml
+# Route conflicts: examples/route-conflict-layout.toml
+# arrival-to-platform-1, departure-from-platform-1: shared block platform-1
+# arrival-to-platform-1, departure-from-platform-1: incompatible turnout west-throat (normal, reverse)
+```
+
 ```text
 Route conflicts: layout.toml
 arrival-to-platform-1, departure-from-platform-1: shared block platform-1
@@ -188,8 +207,11 @@ arrival-to-platform-1, departure-from-platform-1: incompatible turnout west-thro
 
 Route pairs, conflict kinds, and resource IDs are ordered deterministically.
 The analysis only reports declared shared blocks and incompatible turnout
-positions; it does not reserve a route, set a turnout, authorize movement, or
-establish that conflict-free routes are safe to operate.
+positions. It is a static safety aid, not railway control or a movement
+authorization: it has no occupancy, physical topology, or reservation input;
+does not issue commands, set turnouts, reserve routes, or move trains; and does
+not alter simulator or hardware behavior. A conflict-free result therefore
+does not establish that either route is safe to operate.
 
 ## Loading API and error codes
 

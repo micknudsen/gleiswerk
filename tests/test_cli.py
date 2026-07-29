@@ -97,8 +97,8 @@ def test_layout_conflicts_reports_no_conflicts_for_the_reference_layout() -> Non
     assert result.stderr == ""
 
 
-def test_layout_conflicts_reports_every_conflict_from_a_fixture() -> None:
-    fixture = Path("tests/fixtures/conflicting-layout.toml")
+def test_layout_conflicts_reports_every_conflict_from_the_shipped_example() -> None:
+    fixture = Path("examples/route-conflict-layout.toml")
 
     result = run_module("layout", "conflicts", str(fixture))
 

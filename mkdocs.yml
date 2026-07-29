@@ -37,3 +37,5 @@ nav:
       - Documentation and release automation: adr/0005-documentation-and-release-automation.md
       - Initial layout-configuration contract: adr/0006-layout-configuration-contract.md
       - Release preparation: adr/0007-release-preparation.md
+      - Approval-gated milestone planning: adr/0008-approved-milestone-planning.md
+      - Schema-v2 topology contract: adr/0009-schema-v2-topology-contract.md

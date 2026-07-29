@@ -47,8 +47,10 @@ routes share a block or require different positions of the same turnout.
 
 The semantics are deliberately conservative: an identified conflict means the
 two route declarations are incompatible. Conversely, no identified conflict is
-not a movement authorization; it says nothing about reservations, occupancy,
-topology, commands, signals, or the safety of operating either route.
+not a movement authorization; it says nothing about occupancy, physical
+topology, reservations, commands, movement, signals, or the safety of
+operating either route. The model does not make reservations or change
+simulator or hardware behavior. It is an analysis aid only.
 
 The rationale for current cross-cutting decisions is recorded in the
 [ADRs](adr/README.md).

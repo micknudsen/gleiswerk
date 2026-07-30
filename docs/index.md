@@ -4,9 +4,10 @@ Gleiswerk is a local-first control and automation project for model railways.
 It is being developed in public, starting with a deliberately small and
 reproducible distribution foundation.
 
-Release `0.0.3` adds conservative route-conflict analysis for validated layout
-configuration. It remains a safety aid only: it does not control railway
-hardware or authorize train movements.
+Release `0.0.4` adds validated logical topology configuration. It describes
+blocks, endpoints, directed traversals, turnout conditions, and continuous
+routes, but remains a safety aid only: it does not control railway hardware or
+authorize train movements.
 
 ## Principles
 

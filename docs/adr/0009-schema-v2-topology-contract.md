@@ -2,13 +2,14 @@
 
 - Status: Accepted
 - Date: 2026-07-29
+- Updated: 2026-07-30
 
 ## Context
 
-Schema version 1 records named blocks, turnout positions, and route resource
-requirements, but deliberately does not describe how those resources connect.
-Consequently, a version-1 route's ordered block list cannot establish that one
-step can physically follow the previous one. Gleiswerk needs a small,
+Earlier pre-release configurations recorded named blocks, turnout positions,
+and route resource requirements, but deliberately did not describe how those
+resources connect. An ordered block list cannot establish that one step can
+physically follow the previous one. Gleiswerk needs a small,
 controller-independent topology vocabulary before it can validate route
 continuity.
 
@@ -19,9 +20,9 @@ reservations, signals, or movement authority.
 
 ## Decision
 
-Schema version 2 adds the following topology vocabulary. These fields are part
-of the version-2 grammar only; a reader selects the grammar solely from
-`schema-version` and never blends version-1 and version-2 fields.
+Schema version 2 defines the following topology vocabulary. Gleiswerk is
+pre-1.0 and supports this grammar exclusively: a reader requires
+`schema-version = 2` and never blends fields from an earlier grammar.
 
 ### Block endpoints
 
@@ -73,28 +74,27 @@ west-throat = "normal"
 ```
 
 Each turnout can appear at most once in a traversal. A version-2 route is a
-non-empty ordered list of traversal IDs. It is continuous only when the `to`
-endpoint of each traversal exactly equals the `from` endpoint of its successor.
-A route's effective turnout requirements are the union of the requirements of
-its traversals. If that union requires two different positions of the same
-turnout, the route is invalid rather than conditionally available.
+non-empty ordered list of traversal IDs. A future route-continuity validator
+will require the `to` endpoint of each traversal to equal the `from` endpoint
+of its successor. That future validator will also derive each route's effective
+turnout requirements from the union of its traversals and reject contradictory
+positions for the same turnout.
 
-Version-2 validation is deterministic. For a syntactically valid file, it
-collects and orders violations by the established configuration order, then by
-traversal and route ID, and finally by documented field order. Diagnostics use
-stable codes and configuration paths. In particular, unresolved endpoints,
-unsupported turnout positions, discontinuous traversal pairs, and contradictory
-route-level turnout requirements are validation errors, not inferred behavior.
+Version-2 configuration validation is deterministic. For a syntactically valid
+file, it collects and orders structural violations by the established
+configuration order, then by traversal and route ID, and finally by documented
+field order. Diagnostics use stable codes and configuration paths. Unresolved
+endpoints and unsupported turnout positions are validation errors, not inferred
+behavior. Route continuity and contradictory route-level turnout requirements
+remain future safety validation.
 
-### Compatibility policy
+### Versioning policy
 
-Schema version 1 retains its current grammar and validation behavior exactly:
-it neither requires endpoint or traversal declarations nor validates topology
-or route continuity. Version-1 readers continue to reject version-2 fields as
-unknown. Version-2 readers require the topology declarations described here;
-they do not guess connectivity from version-1 ordered block lists. A layout
-author chooses the new contract only by setting `schema-version = 2` and
-providing a complete version-2 configuration.
+Schema version 1 is not supported. Readers reject `schema-version = 1` as an
+unsupported version and do not provide migration or compatibility behavior.
+Version-2 readers require the topology declarations described here; they do
+not guess connectivity from earlier ordered block lists. A layout author must
+provide a complete `schema-version = 2` configuration.
 
 The detailed version-2 TOML reference, parser, diagnostics, and migration
 guidance will be introduced only after this ADR is accepted.
@@ -127,16 +127,18 @@ Route-level requirements cannot say which connection they enable. Attaching
 them to traversals expresses the local topology constraint while allowing a
 route's effective requirements to be checked deterministically.
 
-### Extend schema version 1 in place
+### Retain schema version 1 compatibility
 
-Allowing optional topology fields in version 1 would change the meaning of a
-released contract and make older readers silently ignore safety-relevant data.
-A new schema version keeps the compatibility boundary explicit.
+Keeping an earlier route representation alongside topology routes would make
+the domain model and loader permanently version-aware before the first stable
+release. It would also preserve a route form that cannot validate continuity
+without inferring topology. Rejecting it now keeps the pre-1.0 model small and
+unambiguous.
 
 ## Consequences
 
-- The core can validate a route's declared continuity without a controller,
-  simulator, UI, or physical layout.
+- The core has the controller-independent information needed for future route
+  continuity validation without a simulator, UI, or physical layout.
 - Layout authors must declare both directions when both are allowed, and must
   make turnout-dependent connections explicit.
 - A valid version-2 topology is still not a movement authorization: it says
@@ -145,5 +147,7 @@ A new schema version keeps the compatibility boundary explicit.
 - Version-2 implementation will need new immutable topology types, parser and
   validator rules, stable diagnostics, examples, and tests; none are created by
   this ADR.
-- Existing version-1 configurations remain valid with unchanged behavior, but
-  cannot benefit from continuity validation until deliberately migrated.
+- Existing schema-version 1 configurations are rejected. Their authors must
+  provide complete schema-version 2 topology declarations.
+- The domain model contains only traversal-defined routes, avoiding a legacy
+  block-list route representation and its compatibility burden.

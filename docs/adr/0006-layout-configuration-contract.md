@@ -1,6 +1,6 @@
 # 0006: Initial layout-configuration contract
 
-- Status: Accepted
+- Status: Superseded by [0009](0009-schema-v2-topology-contract.md)
 - Date: 2026-07-26
 
 ## Context

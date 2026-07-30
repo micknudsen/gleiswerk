@@ -72,3 +72,42 @@ def test_layout_validate_rejects_schema_version_1(tmp_path: Path) -> None:
     assert result.stderr == (
         f"ERROR E103 {layout}:schema-version:\n  unsupported schema version 1\n"
     )
+
+
+def test_layout_validate_reports_route_continuity_diagnostics(tmp_path: Path) -> None:
+    layout = tmp_path / "disconnected.toml"
+    layout.write_text(
+        """schema-version = 2
+
+[blocks.west-entry]
+endpoints = ["west", "east"]
+
+[blocks.platform-1]
+endpoints = ["west", "east"]
+
+[blocks.depot]
+endpoints = ["west", "east"]
+
+[traversals.west-to-platform]
+from = "west-entry.east"
+to = "platform-1.west"
+
+[traversals.platform-to-depot]
+from = "platform-1.east"
+to = "depot.west"
+
+[routes.arrival]
+traversals = ["west-to-platform", "platform-to-depot"]
+""",
+        encoding="utf-8",
+    )
+
+    result = run_module("layout", "validate", str(layout))
+
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert result.stderr == (
+        f"ERROR E205 {layout}:routes.arrival.traversals[1]:\n"
+        "  traversal 'west-to-platform' does not connect to "
+        "'platform-to-depot'\n"
+    )

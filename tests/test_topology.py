@@ -65,3 +65,65 @@ class TopologyModelTest(unittest.TestCase):
         route = Route(RouteId("arrival"), (TraversalId("unknown"),))
         with self.assertRaisesRegex(ValueError, "undeclared traversal"):
             Layout(blocks=(block,), routes=(route,))
+
+    def test_layout_rejects_discontinuous_route_traversals(self) -> None:
+        west = Block(BlockId("west-entry"), (EndpointId("west"), EndpointId("east")))
+        platform = Block(
+            BlockId("platform-1"), (EndpointId("west"), EndpointId("east"))
+        )
+        depot = Block(BlockId("depot"), (EndpointId("west"), EndpointId("east")))
+        to_platform = Traversal(
+            TraversalId("west-to-platform"),
+            EndpointReference(BlockId("west-entry"), EndpointId("east")),
+            EndpointReference(BlockId("platform-1"), EndpointId("west")),
+        )
+        from_depot = Traversal(
+            TraversalId("depot-to-platform"),
+            EndpointReference(BlockId("depot"), EndpointId("east")),
+            EndpointReference(BlockId("platform-1"), EndpointId("west")),
+        )
+        route = Route(
+            RouteId("arrival"),
+            (TraversalId("west-to-platform"), TraversalId("depot-to-platform")),
+        )
+
+        with self.assertRaisesRegex(ValueError, "not continuous"):
+            Layout(
+                (west, platform, depot),
+                traversals=(to_platform, from_depot),
+                routes=(route,),
+            )
+
+    def test_layout_rejects_conflicting_route_turnout_requirements(self) -> None:
+        west = Block(BlockId("west-entry"), (EndpointId("west"), EndpointId("east")))
+        platform = Block(
+            BlockId("platform-1"), (EndpointId("west"), EndpointId("east"))
+        )
+        depot = Block(BlockId("depot"), (EndpointId("west"), EndpointId("east")))
+        turnout = Turnout(
+            TurnoutId("west-throat"), (PositionId("normal"), PositionId("reverse"))
+        )
+        to_platform = Traversal(
+            TraversalId("west-to-platform"),
+            EndpointReference(BlockId("west-entry"), EndpointId("east")),
+            EndpointReference(BlockId("platform-1"), EndpointId("west")),
+            {TurnoutId("west-throat"): PositionId("normal")},
+        )
+        to_depot = Traversal(
+            TraversalId("platform-to-depot"),
+            EndpointReference(BlockId("platform-1"), EndpointId("west")),
+            EndpointReference(BlockId("depot"), EndpointId("east")),
+            {TurnoutId("west-throat"): PositionId("reverse")},
+        )
+        route = Route(
+            RouteId("arrival"),
+            (TraversalId("west-to-platform"), TraversalId("platform-to-depot")),
+        )
+
+        with self.assertRaisesRegex(ValueError, "incompatible turnout requirements"):
+            Layout(
+                (west, platform, depot),
+                (turnout,),
+                (to_platform, to_depot),
+                (route,),
+            )

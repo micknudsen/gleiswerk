@@ -113,7 +113,7 @@ def _is_string(value: object) -> TypeGuard[str]:
     return isinstance(value, str)
 
 
-def _is_identifier(value: object) -> bool:
+def _is_identifier(value: object) -> TypeGuard[str]:
     return (
         _is_string(value)
         and re.fullmatch(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*", value) is not None
@@ -494,6 +494,109 @@ def _validate_references(
                         source,
                     )
                 )
+    _validate_route_topology(
+        traversals, routes, endpoints, turnout_positions, diagnostics, source
+    )
+
+
+def _validate_route_topology(
+    traversals: Mapping[str, object],
+    routes: Mapping[str, object],
+    endpoints: set[str],
+    turnout_positions: Mapping[str, list[object]],
+    diagnostics: list[Diagnostic],
+    source: Path | None,
+) -> None:
+    valid_traversals = {
+        traversal_id: traversal
+        for traversal_id, traversal in traversals.items()
+        if _is_identifier(traversal_id)
+        and _is_valid_traversal_topology(traversal, endpoints, turnout_positions)
+    }
+    for route_id in sorted(routes):
+        route = routes[route_id]
+        if not _is_identifier(route_id) or not _is_table(route):
+            continue
+        route_traversals = route.get("traversals")
+        if not _is_array(route_traversals):
+            continue
+        _validate_route_traversal_sequence(
+            route_id, route_traversals, valid_traversals, diagnostics, source
+        )
+
+
+def _is_valid_traversal_topology(
+    traversal: object,
+    endpoints: set[str],
+    turnout_positions: Mapping[str, list[object]],
+) -> TypeGuard[Mapping[str, object]]:
+    if not _is_table(traversal):
+        return False
+    from_endpoint, to_endpoint = traversal.get("from"), traversal.get("to")
+    if (
+        not _is_endpoint_reference(from_endpoint)
+        or not _is_endpoint_reference(to_endpoint)
+        or from_endpoint == to_endpoint
+        or from_endpoint not in endpoints
+        or to_endpoint not in endpoints
+    ):
+        return False
+    requirements = traversal.get("turnouts", {})
+    return _is_table(requirements) and all(
+        _is_identifier(turnout_id)
+        and _is_identifier(position_id)
+        and position_id in turnout_positions.get(turnout_id, [])
+        for turnout_id, position_id in requirements.items()
+    )
+
+
+def _validate_route_traversal_sequence(
+    route_id: str,
+    route_traversals: list[object],
+    traversals: Mapping[str, Mapping[str, object]],
+    diagnostics: list[Diagnostic],
+    source: Path | None,
+) -> None:
+    previous: Mapping[str, object] | None = None
+    turnout_positions: dict[str, str] = {}
+    for index, traversal_id in enumerate(route_traversals):
+        if not _is_identifier(traversal_id):
+            previous = None
+            continue
+        traversal = traversals.get(traversal_id)
+        if traversal is None:
+            previous = None
+            continue
+        path = f"routes.{route_id}.traversals[{index}]"
+        if previous is not None and previous["to"] != traversal["from"]:
+            diagnostics.append(
+                Diagnostic(
+                    "E205",
+                    path,
+                    f"traversal {route_traversals[index - 1]!r} does not connect to "
+                    f"{traversal_id!r}",
+                    source,
+                )
+            )
+        requirements = traversal.get("turnouts", {})
+        assert _is_table(requirements)
+        for turnout_id in sorted(requirements):
+            position_id = requirements[turnout_id]
+            assert _is_string(position_id)
+            existing_position = turnout_positions.get(turnout_id)
+            if existing_position is not None and existing_position != position_id:
+                diagnostics.append(
+                    Diagnostic(
+                        "E206",
+                        path,
+                        f"traversal {traversal_id!r} requires turnout {turnout_id!r} "
+                        f"to be {position_id!r}, but the route requires "
+                        f"{existing_position!r}",
+                        source,
+                    )
+                )
+            turnout_positions[turnout_id] = position_id
+        previous = traversal
 
 
 def _build_layout(data: Mapping[str, object]) -> Layout:

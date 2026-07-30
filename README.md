@@ -8,9 +8,9 @@ automation system. It is being designed around a Märklin H0 reference layout
 while keeping its automation core independent of any particular command
 station.
 
-Version 0.0.2 introduces validated, versioned layout configuration. It remains
-descriptive only: Gleiswerk does not yet control railway hardware or automate
-train movements.
+Schema-version 2 introduces validated, logical topology configuration. It
+remains descriptive only: Gleiswerk does not yet control railway hardware or
+automate train movements.
 
 ## Command-line interface
 
@@ -20,7 +20,6 @@ After installing the project in a development environment:
 gleiswerk --help
 gleiswerk --version
 gleiswerk layout validate layout.toml
-gleiswerk layout conflicts layout.toml
 ```
 
 The package can also be invoked as a Python module:

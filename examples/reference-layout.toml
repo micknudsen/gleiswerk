@@ -1,20 +1,24 @@
-# Gleiswerk schema-version 1 reference layout.
+# Gleiswerk schema-version 2 reference layout.
 #
-# This configuration declares layout vocabulary only. It does not describe
-# topology, controller addresses, train movement, or operating behavior.
-schema-version = 1
+# This configuration declares logical topology only. It does not describe
+# controller addresses, train movement, or operating behavior.
+schema-version = 2
 
 [blocks.west-entry]
 display-name = "West entry"
+endpoints = ["west", "east"]
 
 [blocks.platform-1]
 display-name = "Platform 1"
+endpoints = ["west", "east"]
 
 [blocks.platform-2]
 display-name = "Platform 2"
+endpoints = ["west", "east"]
 
 [blocks.east-exit]
 display-name = "East exit"
+endpoints = ["west", "east"]
 
 [turnouts.west-throat]
 display-name = "West throat turnout"
@@ -24,16 +28,24 @@ positions = ["normal", "reverse"]
 display-name = "East throat turnout"
 positions = ["normal", "reverse"]
 
+[traversals.west-to-platform-1]
+from = "west-entry.east"
+to = "platform-1.west"
+
+[traversals.west-to-platform-1.turnouts]
+west-throat = "normal"
+
+[traversals.platform-2-to-east]
+from = "platform-2.east"
+to = "east-exit.west"
+
+[traversals.platform-2-to-east.turnouts]
+east-throat = "reverse"
+
 [routes.west-to-platform-1]
 display-name = "West entry to platform 1"
-blocks = ["west-entry", "platform-1"]
-
-[routes.west-to-platform-1.turnouts]
-west-throat = "normal"
+traversals = ["west-to-platform-1"]
 
 [routes.platform-2-to-east]
 display-name = "Platform 2 to east exit"
-blocks = ["platform-2", "east-exit"]
-
-[routes.platform-2-to-east.turnouts]
-east-throat = "reverse"
+traversals = ["platform-2-to-east"]

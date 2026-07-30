@@ -8,6 +8,8 @@ hardware behavior.
 
 Schema version 1 is not supported. Before the first stable release, Gleiswerk
 uses one topology model rather than retaining a compatibility representation.
+Schema version 1 described routes without topology; schema version 2 replaces
+that representation with directed traversals and their turnout requirements.
 
 Each layout is a UTF-8 TOML file with the `.toml` extension. The checked-in
 [reference layout](https://github.com/micknudsen/gleiswerk/blob/master/examples/reference-layout.toml)
@@ -96,6 +98,11 @@ requires each route's successive traversals to meet at the same endpoint and
 derives the route's turnout requirements from all its traversals. A route is
 invalid when its traversals require different positions for the same turnout.
 
+Topology validation is not a reservation and does not authorize movement. A
+valid route only describes a continuous, internally consistent topology path;
+it neither reserves blocks or turnouts nor commands hardware, clears signals,
+or permits a train to move.
+
 ## Validation and diagnostics
 
 Validation is deterministic. For syntactically valid TOML, diagnostics appear
@@ -116,6 +123,12 @@ ERROR E201 traversals.west-to-platform.to:
 
 Unknown fields are errors at every level. This prevents misspelled or
 future-version fields from being silently ignored.
+
+The checked-in [invalid topology example](https://github.com/micknudsen/gleiswerk/blob/master/examples/invalid-topology.toml)
+demonstrates an actionable route-continuity diagnostic. Its two traversals meet
+different endpoints of `platform-1`; Gleiswerk does not infer a connection
+through a block. Validate it with the CLI to see the `E205` diagnostic that
+identifies the second traversal in the route.
 
 ## Command-line validation
 

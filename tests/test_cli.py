@@ -61,6 +61,16 @@ traversals = ["west-to-platform"]
     assert result.stderr == ""
 
 
+def test_layout_validate_accepts_the_checked_in_reference_layout() -> None:
+    layout = Path(__file__).parents[1] / "examples" / "reference-layout.toml"
+
+    result = run_module("layout", "validate", str(layout))
+
+    assert result.returncode == 0
+    assert result.stdout == f"Layout is valid: {layout}\n"
+    assert result.stderr == ""
+
+
 def test_layout_validate_rejects_schema_version_1(tmp_path: Path) -> None:
     layout = tmp_path / "legacy.toml"
     layout.write_text("schema-version = 1\n", encoding="utf-8")
@@ -108,6 +118,20 @@ traversals = ["west-to-platform", "platform-to-depot"]
     assert result.stdout == ""
     assert result.stderr == (
         f"ERROR E205 {layout}:routes.arrival.traversals[1]:\n"
+        "  traversal 'west-to-platform' does not connect to "
+        "'platform-to-depot'\n"
+    )
+
+
+def test_layout_validate_reports_the_checked_in_invalid_topology_diagnostic() -> None:
+    layout = Path(__file__).parents[1] / "examples" / "invalid-topology.toml"
+
+    result = run_module("layout", "validate", str(layout))
+
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert result.stderr == (
+        f"ERROR E205 {layout}:routes.invalid-arrival.traversals[1]:\n"
         "  traversal 'west-to-platform' does not connect to "
         "'platform-to-depot'\n"
     )

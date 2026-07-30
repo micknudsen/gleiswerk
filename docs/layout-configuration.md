@@ -91,9 +91,10 @@ display-name = "Arrival"
 traversals = ["west-to-platform"]
 ```
 
-This release validates the shape and references of a topology declaration. It
-does not yet validate route continuity or derive route-level turnout
-requirements; those are future safety rules.
+Gleiswerk validates the shape and references of a topology declaration. It also
+requires each route's successive traversals to meet at the same endpoint and
+derives the route's turnout requirements from all its traversals. A route is
+invalid when its traversals require different positions for the same turnout.
 
 ## Validation and diagnostics
 

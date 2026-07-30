@@ -61,6 +61,38 @@ traversals = ["west-to-platform"]
 
         self.assertEqual(diagnostics, ())
 
+    def test_validator_accepts_a_continuous_route_with_compatible_turnouts(
+        self,
+    ) -> None:
+        diagnostics = validate_layout_data(
+            {
+                "schema-version": 2,
+                "blocks": {
+                    "west-entry": {"endpoints": ["west", "east"]},
+                    "platform-1": {"endpoints": ["west", "east"]},
+                    "depot": {"endpoints": ["west", "east"]},
+                },
+                "turnouts": {"west-throat": {"positions": ["normal", "reverse"]}},
+                "traversals": {
+                    "west-to-platform": {
+                        "from": "west-entry.east",
+                        "to": "platform-1.west",
+                        "turnouts": {"west-throat": "normal"},
+                    },
+                    "platform-to-depot": {
+                        "from": "platform-1.west",
+                        "to": "depot.east",
+                        "turnouts": {"west-throat": "normal"},
+                    },
+                },
+                "routes": {
+                    "arrival": {"traversals": ["west-to-platform", "platform-to-depot"]}
+                },
+            }
+        )
+
+        self.assertEqual(diagnostics, ())
+
     def test_validator_rejects_schema_version_1(self) -> None:
         diagnostics = validate_layout_data({"schema-version": 1})
 
@@ -114,6 +146,70 @@ traversals = ["west-to-platform"]
                 ("E202", "traversals.invalid.turnouts.missing"),
                 ("E203", "traversals.invalid.turnouts.west-throat"),
                 ("E204", "routes.arrival.traversals[0]"),
+            ],
+        )
+
+    def test_validator_reports_route_continuity_and_turnout_conflicts_in_order(
+        self,
+    ) -> None:
+        diagnostics = validate_layout_data(
+            {
+                "schema-version": 2,
+                "blocks": {
+                    "west-entry": {"endpoints": ["west", "east"]},
+                    "platform-1": {"endpoints": ["west", "east"]},
+                    "depot": {"endpoints": ["west", "east"]},
+                },
+                "turnouts": {"west-throat": {"positions": ["normal", "reverse"]}},
+                "traversals": {
+                    "west-to-platform": {
+                        "from": "west-entry.east",
+                        "to": "platform-1.west",
+                        "turnouts": {"west-throat": "normal"},
+                    },
+                    "platform-to-depot": {
+                        "from": "platform-1.east",
+                        "to": "depot.west",
+                        "turnouts": {"west-throat": "reverse"},
+                    },
+                },
+                "routes": {
+                    "zeta": {"traversals": ["west-to-platform", "platform-to-depot"]},
+                    "alpha": {"traversals": ["west-to-platform", "platform-to-depot"]},
+                },
+            }
+        )
+
+        self.assertEqual(
+            [
+                (diagnostic.code, diagnostic.path, diagnostic.message)
+                for diagnostic in diagnostics
+            ],
+            [
+                (
+                    "E205",
+                    "routes.alpha.traversals[1]",
+                    "traversal 'west-to-platform' does not connect to "
+                    "'platform-to-depot'",
+                ),
+                (
+                    "E206",
+                    "routes.alpha.traversals[1]",
+                    "traversal 'platform-to-depot' requires turnout 'west-throat' "
+                    "to be 'reverse', but the route requires 'normal'",
+                ),
+                (
+                    "E205",
+                    "routes.zeta.traversals[1]",
+                    "traversal 'west-to-platform' does not connect to "
+                    "'platform-to-depot'",
+                ),
+                (
+                    "E206",
+                    "routes.zeta.traversals[1]",
+                    "traversal 'platform-to-depot' requires turnout 'west-throat' "
+                    "to be 'reverse', but the route requires 'normal'",
+                ),
             ],
         )
 

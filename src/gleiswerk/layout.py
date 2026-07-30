@@ -181,7 +181,7 @@ class Layout:
             for endpoint_id in block.endpoints
         }
         turnouts = {turnout.id: turnout for turnout in self.turnouts}
-        traversal_ids = {traversal.id for traversal in self.traversals}
+        traversals = {traversal.id: traversal for traversal in self.traversals}
         for traversal in self.traversals:
             for endpoint in (traversal.from_endpoint, traversal.to_endpoint):
                 if (endpoint.block_id, endpoint.endpoint_id) not in endpoints:
@@ -199,10 +199,30 @@ class Layout:
                         f"traversal {traversal.id!r} requires an undeclared turnout position"
                     )
         for route in self.routes:
-            if set(route.traversals) - traversal_ids:
+            if set(route.traversals) - traversals.keys():
                 raise ValueError(
                     f"route {route.id!r} references an undeclared traversal"
                 )
+            _require_continuous_route(route, traversals)
+
+
+def _require_continuous_route(
+    route: Route, traversals: Mapping[TraversalId, Traversal]
+) -> None:
+    route_traversals = tuple(
+        traversals[traversal_id] for traversal_id in route.traversals
+    )
+    turnout_positions: dict[TurnoutId, PositionId] = {}
+    for index, traversal in enumerate(route_traversals):
+        if index and route_traversals[index - 1].to_endpoint != traversal.from_endpoint:
+            raise ValueError(f"route {route.id!r} is not continuous")
+        for turnout_id, position_id in traversal.turnout_positions.items():
+            existing_position = turnout_positions.get(turnout_id)
+            if existing_position is not None and existing_position != position_id:
+                raise ValueError(
+                    f"route {route.id!r} has incompatible turnout requirements"
+                )
+            turnout_positions[turnout_id] = position_id
 
 
 def _require_unique_ids(

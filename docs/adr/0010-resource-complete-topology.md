@@ -24,6 +24,13 @@ through a junction or an entire path between distant places. Those meanings
 must be separated before Gleiswerk adds route compatibility, reservations, or
 movement authority.
 
+A continuous rail span may be split into track sections for occupancy,
+operating, or route-boundary reasons. The resulting section boundary needs an
+explicit topology connection, but it does not necessarily create a physical
+conflict area or a separately claimable resource. Modeling every such boundary
+as a junction would introduce fictional resources and obscure the difference
+between ordinary continuity and a locally constrained movement.
+
 Gleiswerk needs a coordinate-free model in which every physical resource a
 train can occupy or foul is explicit and claimable. The same model must support
 the simulator and physical adapters without putting controller addresses,
@@ -47,15 +54,19 @@ safety state:
   resource. A path records which port it enters and leaves; any directional
   restriction is explicit rather than encoded as a second section identity.
 - A `Port` is a logical connection boundary owned by one track section or one
-  junction. A connection pairs exactly one track-section port with one
-  junction port, and each port participates in at most one connection. An
-  unconnected track-section port is valid only when declared as a terminal or
-  layout boundary.
+  junction. A port participates in at most one explicit `Connection`; an
+  unconnected port is valid only when declared as a terminal or layout
+  boundary. Connections cannot branch; branching belongs to a junction.
+- A `Connection` is an explicit fixed adjacency between exactly two ports. For
+  example, it can join two immediately adjacent track sections or connect a
+  track section to a junction. It establishes path continuity but is not a
+  separately claimable resource. Any directional restriction is declared
+  explicitly and never encoded as a duplicate track-section identity.
 - A `Junction` is an atomic, exclusively claimable local resource joining
-  ports. Fixed joints, turnouts, crossings, and slips are represented by the
-  same topology concept at different levels of complexity. Physically
-  independent movements require distinct junction resources; there is no
-  nonexclusive-junction flag.
+  ports where a path is selected or a physical conflict area must be
+  protected. Turnouts, crossings, slips, and similarly constrained local
+  arrangements use this concept. Physically independent movements require
+  distinct junction resources; there is no nonexclusive-junction flag.
 - A `JunctionPassage` is an explicitly allowed directed passage from one port
   of a junction to another. Reverse movement is available only when declared,
   but the reverse passage claims the same physical junction resource. Passage
@@ -80,6 +91,11 @@ Direction-specific protection may add further claims and requirements.
 Declared protection rules can attach to any path element, route boundary, or
 route definition and contribute both non-path protection claims and non-path
 device requirements to a route plan.
+
+A `Connection` contributes an ordered path transition but no separate claim.
+If its physical boundary has a clearance, fouling, or protection consequence,
+that area belongs in an adjacent claimable resource or a declared
+`ProtectionZone`, not in a fictional junction.
 
 Resource boundaries must coincide with safe clearance boundaries. Otherwise,
 the adjacent resources must share a protection claim representing the
@@ -112,7 +128,7 @@ plan that revisits a physical resource rather than implying phased device
 changes or release behavior. The compiler produces a `RoutePlan` that contains:
 
 - the complete ordered directed path, including every intervening track
-  section and junction passage;
+  section, connection, and junction passage;
 - the complete set of physical and protection resources claimed by the path
   and its declared protection rules;
 - the required logical positions of control devices, including non-path flank
@@ -179,35 +195,38 @@ them.
 The schema-version-3 design and implementation must make the following
 scenarios explicit and testable:
 
-1. A route from a west entry through a west throat, platform track, east
+1. Two immediately adjacent track sections linked by a direct `Connection`
+   compile to one continuous path. The plan claims both sections and does not
+   invent a junction claim.
+2. A route from a west entry through a west throat, platform track, east
    throat, and east exit compiles to a plan containing both throats and every
    intervening track section.
-2. The reverse route has explicit reverse-directed path elements and claims
+3. The reverse route has explicit reverse-directed path elements and claims
    the same base physical sections and junction footprints, while allowing
    additional direction-specific protection.
-3. Two routes over genuinely disjoint physical and protection resources can
+4. Two routes over genuinely disjoint physical and protection resources can
    be compatible.
-4. Two routes requiring different positions of one control device conflict
+5. Two routes requiring different positions of one control device conflict
    even if their named endpoints differ.
-5. Two routes requiring the same control-device position still conflict when
+6. Two routes requiring the same control-device position still conflict when
    they share track, a junction, or a protection resource.
-6. Crossing, common-throat, fouling, flank-protection, and overlap conflicts
+7. Crossing, common-throat, fouling, flank-protection, and overlap conflicts
    are explainable through shared declared claims and required device
    positions, including requirements outside the nominal path.
-7. One detector covering several track sections does not merge those sections
+8. One detector covering several track sections does not merge those sections
    into one topology resource.
-8. A train straddling two occupancy zones keeps every affected route claim
+9. A train straddling two occupancy zones keeps every affected route claim
    unavailable. Partial, stale, or clear-only coverage cannot override occupied
    or unknown evidence elsewhere.
-9. A route wholly within one track section has explicit entry and exit limits
+10. A route wholly within one track section has explicit entry and exit limits
    and still claims that section.
-10. Unconnected nonterminal ports, missing connections, declared path resources
+11. Unconnected nonterminal ports, missing connections, declared path resources
     omitted from a plan, contradictory requirements, ambiguous paths, cycles,
     and repeated resources are rejected rather than guessed. Physical omissions
     that declarations cannot expose remain a commissioning concern.
-11. After startup or lost feedback, affected occupancy and control evidence is
+12. After startup or lost feedback, affected occupancy and control evidence is
     unknown and cannot support movement authority.
-12. A protection resource can be claimed even though it does not occur in the
+13. A protection resource can be claimed even though it does not occur in the
     route's nominal wheel path.
 
 These are semantic acceptance scenarios, not a commitment to exact
@@ -228,6 +247,14 @@ An additional list could patch the immediate omission, but it would duplicate
 path data and leave block, detector, junction, and reservation meanings
 entangled. Continuity and completeness could disagree between the traversal
 endpoints and the added list.
+
+### Model every fixed adjacency as a junction
+
+This gives the graph a uniform alternating shape, but an ordinary track-section
+boundary has no independent path selection or exclusion meaning. It would
+force authors to declare fictional junctions and make plans carry claims that
+do not correspond to a physical safety resource. Explicit non-claimable
+connections preserve continuity without that distortion.
 
 ### Make blocks multi-port topology nodes
 
@@ -255,6 +282,8 @@ validation boundary explicit.
   plans.
 - The future configuration is richer, but routes can be checked independently
   of author naming conventions and travel direction.
+- Adjacent track sections are linked through explicit connections, which remain
+  visible in path provenance without adding false reservation claims.
 - Track topology, observation coverage, device control, reservation, and
   movement authority have distinct boundaries and can evolve independently.
 - The simulator and physical adapters can exercise the same core model while

@@ -18,16 +18,24 @@ with exactly two ports. Its identity does not change with travel direction.
 _Avoid_: traversal; detector block.
 
 **Port**:
-A logical boundary owned by one Track Section or one Junction. A connection
-pairs one port of each kind, each port has at most one connection, and an
-unconnected Track Section port must be an explicit terminal or layout boundary.
-_Avoid_: screen connector.
+A logical connection boundary owned by one Track Section or one Junction. A
+Port has at most one Connection; an unconnected Port must be an explicit
+terminal or layout boundary.
+_Avoid_: screen connector; inferred adjacency.
+
+**Connection**:
+An explicit fixed adjacency between two Ports. It proves continuity but adds no
+separate resource claim; adjacent Track Sections remain the claimable
+resources.
+_Avoid_: fictional Junction; Track Section.
 
 **Junction**:
-A local topology resource that joins ports, including a fixed joint, turnout,
-crossing, or slip. A Junction is an atomic exclusive claim whose allowed
-movements are Junction Passages.
-_Avoid_: using Control Device for the physical track arrangement.
+A local topology resource that joins ports where a path is selected or a
+physical conflict area must be claimed, such as a turnout, crossing, or slip.
+A Junction is an atomic exclusive claim whose allowed movements are Junction
+Passages.
+_Avoid_: using Control Device for the physical track arrangement; ordinary
+contiguous rail.
 
 **Junction Passage**:
 An explicitly allowed directed movement between two ports of one junction,

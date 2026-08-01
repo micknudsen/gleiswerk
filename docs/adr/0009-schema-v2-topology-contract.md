@@ -1,8 +1,8 @@
 # 0009: Schema-v2 topology contract
 
-- Status: Accepted
+- Status: Superseded by ADR 0010
 - Date: 2026-07-29
-- Updated: 2026-07-30
+- Updated: 2026-08-01
 
 ## Context
 

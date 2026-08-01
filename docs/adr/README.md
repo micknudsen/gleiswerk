@@ -12,3 +12,4 @@ their rationale, and their consequences.
 - [0007: Release preparation](0007-release-preparation.md)
 - [0008: Approval-gated milestone planning](0008-approved-milestone-planning.md)
 - [0009: Schema-v2 topology contract](0009-schema-v2-topology-contract.md)
+- [0010: Resource-complete topology](0010-resource-complete-topology.md)

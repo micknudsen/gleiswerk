@@ -1,7 +1,8 @@
 # 0010: Resource-complete topology
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-31
+- Updated: 2026-08-01
 
 ## Context
 
@@ -38,11 +39,11 @@ commands, or UI concepts in the automation core.
 
 ## Decision
 
-This ADR proposes the topology direction for schema version 3. It does not
-change the active configuration contract or implementation: schema version 2
-remains current while this ADR is proposed. If this ADR is accepted, ADR 0009
-will be marked superseded and schema version 3 will replace version 2 through a
-separate implementation change and migration guide.
+This ADR establishes the topology direction for schema version 3 and supersedes
+ADR 0009 as the target topology contract. It does not itself change the active
+reader or implementation: schema version 2 remains the only supported grammar
+until a separate schema-version-3 implementation and migration guide are
+introduced.
 
 ### Physical topology
 
@@ -290,12 +291,13 @@ validation boundary explicit.
   consuming the same validated installation-binding contract.
 - Configuration and compilation diagnostics must remain deterministic and
   explain every derived path element, claim, and device requirement.
-- Implementing the proposal will be a breaking schema change with new immutable
+- Implementing this decision will be a breaking schema change with new immutable
   types, validation, examples, tests, and migration documentation.
 - A version-2 block has no assumed one-to-one migration to a track section or
   occupancy zone; migration must use its actual physical and detection meaning.
 - Configuration validation cannot certify the real installation. Commissioning
   must verify resource boundaries, detector coverage, control bindings, and
   fail-safe behavior against the physical layout.
-- ADR 0009 remains accepted until this proposal is accepted. Acceptance of this
-  ADR requires updating ADR 0009 to `Superseded by ADR 0010`.
+- ADR 0009 is superseded. Its schema-version-2 implementation remains active
+  only until schema version 3 is implemented and migration guidance is
+  available.

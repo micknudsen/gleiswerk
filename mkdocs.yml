@@ -40,4 +40,4 @@ nav:
       - Release preparation: adr/0007-release-preparation.md
       - Approval-gated milestone planning: adr/0008-approved-milestone-planning.md
       - Schema-v2 topology contract: adr/0009-schema-v2-topology-contract.md
-      - "Resource-complete topology (proposed)": adr/0010-resource-complete-topology.md
+      - Resource-complete topology: adr/0010-resource-complete-topology.md

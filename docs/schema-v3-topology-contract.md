@@ -36,8 +36,7 @@ All collection IDs, local port IDs, device position IDs, and rule IDs match:
 ```
 
 IDs are unique within their collection. Port IDs are unique within their
-owner. A reference never relies on a display name or on an ID from another
-collection.
+owner. A reference never relies on an ID from another collection.
 
 | Reference | Form |
 | --- | --- |
@@ -51,9 +50,6 @@ collection.
 References are case-sensitive. They contain exactly the documented number of
 colon-separated components; components use the same ID grammar. References
 must resolve to the named collection and local port where applicable.
-
-`display-name` is optional operator metadata on any named declaration. When
-present, it is a nonempty string. It has no safety or identity meaning.
 
 The topology revision fingerprint is not author supplied. After decoding the
 file as UTF-8, the loader computes `sha256:<lowercase-hex>` over the exact
@@ -97,7 +93,6 @@ Port must have exactly one Connection.
 ```yaml
 track-sections:
   west-entry:
-    display-name: West entry
     ports: [west, east]
     movements:
       - from: west
@@ -107,9 +102,9 @@ track-sections:
     terminal-ports: [west]
 ```
 
-The only fields are `display-name`, `ports`, `movements`, and
-`terminal-ports`. Port ownership is established by the `ports` array; Ports
-are not also declared in a global collection.
+The only fields are `ports`, `movements`, and `terminal-ports`. Port ownership
+is established by the `ports` array; Ports are not also declared in a global
+collection.
 
 ## Junctions and Junction Passages
 
@@ -137,10 +132,10 @@ junction-passages:
       west-throat-switch: normal
 ```
 
-The only passage fields are `display-name`, `junction`, `from`, `to`, and
-`requirements`. `requirements` is optional and defaults to an empty mapping. Its
-keys reference Control Device IDs and its values reference positions declared
-by those devices.
+The only passage fields are `junction`, `from`, `to`, and `requirements`.
+`requirements` is optional and defaults to an empty mapping. Its keys reference
+Control Device IDs and its values reference positions declared by those
+devices.
 
 Passage selection must be deterministic. For passages with the same Junction
 and `from` Port, every pair leading to different `to` Ports must be mutually
@@ -162,9 +157,8 @@ control-devices:
     positions: [normal, reverse]
 ```
 
-The only fields are `display-name` and `positions`. A requirement constrains a
-position; it never commands the device and never proves the position was
-observed.
+The only field is `positions`. A requirement constrains a position; it never
+commands the device and never proves the position was observed.
 
 ## Connections
 
@@ -227,12 +221,11 @@ no complete coverage remain unknown for movement-authority purposes.
 ## Protection Zones and rules
 
 A Protection Zone is a named claimable resource outside, or in addition to, a
-nominal wheel path. It has only optional `display-name` metadata.
+nominal wheel path. Its declaration is an empty mapping.
 
 ```yaml
 protection-zones:
-  platform-overlap:
-    display-name: Platform stopping overlap
+  platform-overlap: {}
 ```
 
 A Protection Rule attaches additional claims and Control Device requirements
@@ -289,10 +282,9 @@ route-definitions:
     via: [junction-passage:west-to-platform-1]
 ```
 
-The only fields are `display-name`, `entry`, `exit`, and `via`. Route
-Definitions do not list physical claims, device requirements, or an ordered
-path. Those are compiler outputs, so authored data cannot omit an intervening
-resource.
+The only fields are `entry`, `exit`, and `via`. Route Definitions do not list
+physical claims, device requirements, or an ordered path. Those are compiler
+outputs, so authored data cannot omit an intervening resource.
 
 Compilation starts by entering the owner of `entry`. It traverses a declared
 Track Section movement or a selected Junction Passage, crosses a declared
@@ -351,16 +343,15 @@ Within a phase, diagnostics sort by this fixed collection order, then ID,
 field order below, array index, and code:
 
 1. `schema-version`;
-2. `track-sections` (`display-name`, `ports`, `movements`, `terminal-ports`);
-3. `junctions` (`display-name`, `ports`, `terminal-ports`);
-4. `control-devices` (`display-name`, `positions`);
-5. `connections` (`display-name`, `ports`, `movements`);
-6. `junction-passages` (`display-name`, `junction`, `from`, `to`,
-   `requirements`);
-7. `occupancy-zones` (`display-name`, `coverage`);
-8. `protection-zones` (`display-name`);
-9. `protection-rules` (`display-name`, `trigger`, `claims`, `requirements`);
-10. `route-definitions` (`display-name`, `entry`, `exit`, `via`).
+2. `track-sections` (`ports`, `movements`, `terminal-ports`);
+3. `junctions` (`ports`, `terminal-ports`);
+4. `control-devices` (`positions`);
+5. `connections` (`ports`, `movements`);
+6. `junction-passages` (`junction`, `from`, `to`, `requirements`);
+7. `occupancy-zones` (`coverage`);
+8. `protection-zones`;
+9. `protection-rules` (`trigger`, `claims`, `requirements`);
+10. `route-definitions` (`entry`, `exit`, `via`).
 
 IDs and set-valued results sort by Unicode code point. Ordered arrays (`ports`,
 `via`, and the compiled path) retain semantic array or path order. One invalid
@@ -377,7 +368,6 @@ cascading diagnostics that depend on that value are suppressed.
 | `E104` | Unknown top-level field. |
 | `E105` | A top-level collection is not a mapping. |
 | `E106` | Unknown declaration field. |
-| `E107` | `display-name` is empty or not a string. |
 | `E110` | ID or reference syntax is invalid. |
 | `E111` | Array or mapping cardinality is invalid. |
 | `E112` | Array contains a duplicate value. |

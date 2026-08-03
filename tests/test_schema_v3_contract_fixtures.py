@@ -61,3 +61,10 @@ def test_track_sections_and_connections_name_each_allowed_movement() -> None:
                 for movement in movements:
                     assert set(movement) == {"from", "to"}
                     assert movement["from"] != movement["to"]
+
+
+def test_schema_v3_fixtures_do_not_use_display_names() -> None:
+    for fixture in sorted(FIXTURE_DIRECTORY.glob("*.yaml")):
+        if fixture == MANIFEST:
+            continue
+        assert "display-name" not in fixture.read_text(encoding="utf-8")

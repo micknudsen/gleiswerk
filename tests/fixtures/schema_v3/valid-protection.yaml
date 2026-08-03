@@ -103,12 +103,9 @@ junction-passages:
     from: north
     to: south
 protection-zones:
-  crossing-fouling:
-    display-name: Crossing fouling area
-  east-overlap:
-    display-name: East stopping overlap
-  siding-flank:
-    display-name: Siding flank area
+  crossing-fouling: {}
+  east-overlap: {}
+  siding-flank: {}
 protection-rules:
   east-west-fouling:
     trigger:

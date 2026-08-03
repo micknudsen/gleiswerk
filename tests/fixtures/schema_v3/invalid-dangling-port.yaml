@@ -1,0 +1,11 @@
+schema-version: 3
+track-sections:
+  approach:
+    ports:
+    - west
+    - east
+    terminal-ports:
+    - west
+    movements:
+    - from: west
+      to: east

@@ -1,0 +1,27 @@
+schema-version: 3
+junctions:
+  throat:
+    ports:
+    - west
+    - main
+    - branch
+    terminal-ports:
+    - west
+    - main
+    - branch
+control-devices:
+  throat-switch:
+    positions:
+    - normal
+    - reverse
+junction-passages:
+  to-main:
+    junction: throat
+    from: west
+    to: main
+    requirements:
+      throat-switch: normal
+  to-branch:
+    junction: throat
+    from: west
+    to: branch

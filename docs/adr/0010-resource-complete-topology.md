@@ -231,8 +231,9 @@ scenarios explicit and testable:
     route's nominal wheel path.
 
 These are semantic acceptance scenarios, not a commitment to exact
-configuration field names. The detailed grammar will be reviewed before
-implementation.
+configuration field names. The subsequently reviewed field names, reference
+forms, validation rules, and fixtures are fixed by the
+[schema-v3 topology contract](../schema-v3-topology-contract.md).
 
 ## Alternatives considered
 

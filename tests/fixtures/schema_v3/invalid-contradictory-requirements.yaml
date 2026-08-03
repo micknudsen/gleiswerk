@@ -1,0 +1,34 @@
+schema-version: 3
+junctions:
+  throat:
+    ports:
+    - west
+    - main
+    terminal-ports:
+    - west
+    - main
+control-devices:
+  throat-switch:
+    positions:
+    - normal
+    - reverse
+junction-passages:
+  to-main:
+    junction: throat
+    from: west
+    to: main
+    requirements:
+      throat-switch: normal
+protection-rules:
+  contradiction:
+    trigger:
+      kind: route-definition
+      id: to-main
+    requirements:
+      throat-switch: reverse
+route-definitions:
+  to-main:
+    entry: junction:throat:west
+    exit: junction:throat:main
+    via:
+    - junction-passage:to-main

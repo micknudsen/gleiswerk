@@ -1,0 +1,19 @@
+schema-version: 3
+track-sections:
+  approach:
+    ports:
+    - west
+    - east
+    terminal-ports:
+    - west
+    movements:
+    - from: west
+      to: east
+connections:
+  to-missing:
+    ports:
+    - track-section:approach:east
+    - track-section:missing:west
+    movements:
+    - from: track-section:approach:east
+      to: track-section:missing:west

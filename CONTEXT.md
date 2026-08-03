@@ -14,7 +14,8 @@ _Avoid_: using “block” without qualifying its meaning in new domain contract
 
 **Track Section**:
 A linear physical rail span represented as one claimable topology resource
-with exactly two ports. Its identity does not change with travel direction.
+with exactly two ports. Its identity does not change with travel direction;
+permitted travel is declared by explicit `from`/`to` port movements.
 _Avoid_: traversal; detector block.
 
 **Port**:
@@ -59,6 +60,14 @@ _Avoid_: treating partial, stale, or clear-only coverage as complete evidence.
 A claimable safety resource in addition to a route's nominal wheel path, such
 as fouling clearance, flank protection, or an overlap.
 _Avoid_: assuming only wheel-path resources can conflict.
+
+**Protection Rule**:
+An immutable declaration that attaches additional Protection Zone claims and
+Control Device requirements to a directed path element, Route Definition, or
+route boundary. Its contributions retain provenance in the compiled Route
+Plan.
+_Avoid_: using a Protection Rule to add or remove a Track Section or Junction
+claim; those claims are derived from the physical path.
 
 **Route Definition**:
 Immutable configuration expressing intended entry, exit, and sufficient

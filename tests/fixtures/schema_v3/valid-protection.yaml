@@ -1,0 +1,150 @@
+schema-version: 3
+track-sections:
+  west:
+    ports:
+    - outer
+    - crossing
+    terminal-ports:
+    - outer
+    movements:
+    - from: outer
+      to: crossing
+    - from: crossing
+      to: outer
+  east:
+    ports:
+    - crossing
+    - outer
+    terminal-ports:
+    - outer
+    movements:
+    - from: crossing
+      to: outer
+    - from: outer
+      to: crossing
+  north:
+    ports:
+    - outer
+    - crossing
+    terminal-ports:
+    - outer
+    movements:
+    - from: outer
+      to: crossing
+    - from: crossing
+      to: outer
+  south:
+    ports:
+    - crossing
+    - outer
+    terminal-ports:
+    - outer
+    movements:
+    - from: crossing
+      to: outer
+    - from: outer
+      to: crossing
+junctions:
+  diamond:
+    ports:
+    - west
+    - east
+    - north
+    - south
+control-devices:
+  siding-trap:
+    positions:
+    - protecting
+    - open
+connections:
+  west-to-diamond:
+    ports:
+    - track-section:west:crossing
+    - junction:diamond:west
+    movements:
+    - from: track-section:west:crossing
+      to: junction:diamond:west
+    - from: junction:diamond:west
+      to: track-section:west:crossing
+  diamond-to-east:
+    ports:
+    - junction:diamond:east
+    - track-section:east:crossing
+    movements:
+    - from: junction:diamond:east
+      to: track-section:east:crossing
+    - from: track-section:east:crossing
+      to: junction:diamond:east
+  north-to-diamond:
+    ports:
+    - track-section:north:crossing
+    - junction:diamond:north
+    movements:
+    - from: track-section:north:crossing
+      to: junction:diamond:north
+    - from: junction:diamond:north
+      to: track-section:north:crossing
+  diamond-to-south:
+    ports:
+    - junction:diamond:south
+    - track-section:south:crossing
+    movements:
+    - from: junction:diamond:south
+      to: track-section:south:crossing
+    - from: track-section:south:crossing
+      to: junction:diamond:south
+junction-passages:
+  west-to-east:
+    junction: diamond
+    from: west
+    to: east
+  north-to-south:
+    junction: diamond
+    from: north
+    to: south
+protection-zones:
+  crossing-fouling:
+    display-name: Crossing fouling area
+  east-overlap:
+    display-name: East stopping overlap
+  siding-flank:
+    display-name: Siding flank area
+protection-rules:
+  east-west-fouling:
+    trigger:
+      kind: junction-passage
+      id: west-to-east
+    claims:
+    - protection-zone:crossing-fouling
+    requirements:
+      siding-trap: protecting
+  north-south-fouling:
+    trigger:
+      kind: junction-passage
+      id: north-to-south
+    claims:
+    - protection-zone:crossing-fouling
+  east-boundary-overlap:
+    trigger:
+      kind: route-boundary
+      route: west-to-east
+      boundary: exit
+    claims:
+    - protection-zone:east-overlap
+  west-east-flank:
+    trigger:
+      kind: route-definition
+      id: west-to-east
+    claims:
+    - protection-zone:siding-flank
+route-definitions:
+  west-to-east:
+    entry: track-section:west:outer
+    exit: track-section:east:outer
+    via:
+    - junction-passage:west-to-east
+  north-to-south:
+    entry: track-section:north:outer
+    exit: track-section:south:outer
+    via:
+    - junction-passage:north-to-south

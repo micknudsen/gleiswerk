@@ -44,11 +44,11 @@ junctions:
     - loop
     - east
 control-devices:
-  west-throat-switch:
+  west-throat-turnout:
     positions:
     - main
     - loop
-  east-throat-switch:
+  east-throat-turnout:
     positions:
     - main
     - loop
@@ -101,25 +101,25 @@ junction-passages:
     from: west
     to: main
     requirements:
-      west-throat-switch: main
+      west-throat-turnout: main
   west-to-loop:
     junction: west-throat
     from: west
     to: loop
     requirements:
-      west-throat-switch: loop
+      west-throat-turnout: loop
   main-to-east:
     junction: east-throat
     from: main
     to: east
     requirements:
-      east-throat-switch: main
+      east-throat-turnout: main
   loop-to-east:
     junction: east-throat
     from: loop
     to: east
     requirements:
-      east-throat-switch: loop
+      east-throat-turnout: loop
 route-definitions:
   ambiguous:
     entry: track-section:west:outer

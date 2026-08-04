@@ -129,7 +129,7 @@ junction-passages:
     from: west
     to: platform-1
     requirements:
-      west-throat-switch: normal
+      west-throat-turnout: normal
 ```
 
 The only passage fields are `junction`, `from`, `to`, and `requirements`.
@@ -153,7 +153,7 @@ state, and assumed position are not part of this file.
 
 ```yaml
 control-devices:
-  west-throat-switch:
+  west-throat-turnout:
     positions: [normal, reverse]
 ```
 

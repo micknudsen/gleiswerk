@@ -64,11 +64,11 @@ junctions:
     - platform-2
     - east
 control-devices:
-  west-throat-switch:
+  west-throat-turnout:
     positions:
     - normal
     - reverse
-  east-throat-switch:
+  east-throat-turnout:
     positions:
     - normal
     - reverse
@@ -133,49 +133,49 @@ junction-passages:
     from: west
     to: platform-1
     requirements:
-      west-throat-switch: normal
+      west-throat-turnout: normal
   platform-1-to-west:
     junction: west-throat
     from: platform-1
     to: west
     requirements:
-      west-throat-switch: normal
+      west-throat-turnout: normal
   west-to-platform-2:
     junction: west-throat
     from: west
     to: platform-2
     requirements:
-      west-throat-switch: reverse
+      west-throat-turnout: reverse
   platform-2-to-west:
     junction: west-throat
     from: platform-2
     to: west
     requirements:
-      west-throat-switch: reverse
+      west-throat-turnout: reverse
   platform-1-to-east:
     junction: east-throat
     from: platform-1
     to: east
     requirements:
-      east-throat-switch: normal
+      east-throat-turnout: normal
   east-to-platform-1:
     junction: east-throat
     from: east
     to: platform-1
     requirements:
-      east-throat-switch: normal
+      east-throat-turnout: normal
   platform-2-to-east:
     junction: east-throat
     from: platform-2
     to: east
     requirements:
-      east-throat-switch: reverse
+      east-throat-turnout: reverse
   east-to-platform-2:
     junction: east-throat
     from: east
     to: platform-2
     requirements:
-      east-throat-switch: reverse
+      east-throat-turnout: reverse
 route-definitions:
   west-to-east-via-platform-1:
     entry: track-section:west-entry:west

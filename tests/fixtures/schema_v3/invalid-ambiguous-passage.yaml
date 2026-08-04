@@ -10,7 +10,7 @@ junctions:
     - main
     - branch
 control-devices:
-  throat-switch:
+  throat-turnout:
     positions:
     - normal
     - reverse
@@ -20,7 +20,7 @@ junction-passages:
     from: west
     to: main
     requirements:
-      throat-switch: normal
+      throat-turnout: normal
   to-branch:
     junction: throat
     from: west

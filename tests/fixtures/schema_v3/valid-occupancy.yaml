@@ -40,7 +40,7 @@ junctions:
     - main
     - siding
 control-devices:
-  throat-switch:
+  throat-turnout:
     positions:
     - normal
     - reverse
@@ -78,13 +78,13 @@ junction-passages:
     from: west
     to: main
     requirements:
-      throat-switch: normal
+      throat-turnout: normal
   west-to-siding:
     junction: throat
     from: west
     to: siding
     requirements:
-      throat-switch: reverse
+      throat-turnout: reverse
 occupancy-zones:
   main-detector:
     coverage:

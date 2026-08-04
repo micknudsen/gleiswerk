@@ -8,7 +8,7 @@ junctions:
     - west
     - main
 control-devices:
-  throat-switch:
+  throat-turnout:
     positions:
     - normal
     - reverse
@@ -18,14 +18,14 @@ junction-passages:
     from: west
     to: main
     requirements:
-      throat-switch: normal
+      throat-turnout: normal
 protection-rules:
   contradiction:
     trigger:
       kind: route-definition
       id: to-main
     requirements:
-      throat-switch: reverse
+      throat-turnout: reverse
 route-definitions:
   to-main:
     entry: junction:throat:west

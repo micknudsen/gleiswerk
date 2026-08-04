@@ -36,5 +36,13 @@ reporter. The TOML reader and validator collect file-specific errors with paths
 and codes, then construct valid domain objects. The model has no dependency on
 the command-line interface, filesystem, simulator, or hardware adapters.
 
+The schema-v3 topology vocabulary is being introduced as a separate, additive
+domain model. Its immutable values distinguish directed path elements (Track
+Section movements, Connection movements, and Junction Passages) from
+direction-independent claimable resources (Track Sections, Junctions, and
+Protection Zones). It also records Ports, Control Device requirements, and
+Occupancy Zone coverage without loading YAML, compiling routes, reserving
+resources, or communicating with an adapter.
+
 The rationale for current cross-cutting decisions is recorded in the
 [ADRs](adr/README.md).

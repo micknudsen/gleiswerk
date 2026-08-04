@@ -87,8 +87,8 @@ cases:
   - track-section:platform-1
   - track-section:west-entry
   expected-requirements:
-  - east-throat-switch=normal
-  - west-throat-switch=normal
+  - east-throat-turnout=normal
+  - west-throat-turnout=normal
   expectation: The path and claims include both throats and every intervening Track
     Section.
 - id: station-reverse-platform-1
@@ -138,8 +138,8 @@ cases:
   - track-section:platform-1
   - track-section:west-entry
   expected-requirements:
-  - east-throat-switch=normal
-  - west-throat-switch=normal
+  - east-throat-turnout=normal
+  - west-throat-turnout=normal
   expectation: Reverse-directed elements retain the same base physical claims.
 - id: disjoint-routes
   fixture: valid-station.yaml
@@ -161,8 +161,8 @@ cases:
   - west-to-platform-1
   - west-to-platform-2
   expected-conflicts:
-  - control-device:west-throat-switch:normal:reverse
-  expectation: Different positions of west-throat-switch conflict even though route exits
+  - control-device:west-throat-turnout:normal:reverse
+  expectation: Different positions of west-throat-turnout conflict even though route exits
     differ.
 - id: same-device-position-shared-resources
   fixture: valid-station.yaml
@@ -233,7 +233,7 @@ cases:
   phase: runtime-rule
   outcome: denied
   route: west-to-main
-  expectation: At startup and after lost feedback, occupancy and switch-position evidence is
+  expectation: At startup and after lost feedback, occupancy and turnout-position evidence is
     unknown and cannot support movement authority.
 - id: unresolved-reference
   fixture: invalid-unresolved-reference.yaml

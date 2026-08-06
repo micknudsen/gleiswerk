@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from importlib.metadata import version
 from pathlib import Path
 
-from gleiswerk.layout_config import LayoutConfigurationError, load_layout
+from gleiswerk.topology_config import TopologyConfigurationError, load_topology
 
 _DISTRIBUTION_NAME = "gleiswerk"
 _PRODUCT_NAME = "Gleiswerk"
@@ -29,7 +29,7 @@ def build_parser() -> ArgumentParser:
     validate = layout_commands.add_parser(
         "validate", help="Validate a layout configuration file."
     )
-    validate.add_argument("file", metavar="FILE", help="Path to a layout TOML file.")
+    validate.add_argument("file", metavar="FILE", help="Path to a layout YAML file.")
     return parser
 
 
@@ -44,8 +44,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 def _validate_layout(file: str) -> int:
     """Validate a layout file and report the result for command-line users."""
     try:
-        load_layout(Path(file))
-    except LayoutConfigurationError as error:
+        load_topology(Path(file))
+    except TopologyConfigurationError as error:
         print(error, file=sys.stderr)
         return 1
 

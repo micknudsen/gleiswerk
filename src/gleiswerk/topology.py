@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import NewType
@@ -272,3 +273,14 @@ class ProtectionZone:
 
     def __post_init__(self) -> None:
         _require_identifier(self.id, "protection zone ID")
+
+
+@dataclass(frozen=True, slots=True)
+class Topology:
+    """The immutable, validated core rail graph from one schema-v3 layout."""
+
+    track_sections: Mapping[TrackSectionId, TrackSection]
+    junctions: Mapping[JunctionId, Junction]
+    control_devices: Mapping[ControlDeviceId, ControlDevice]
+    connections: Mapping[ConnectionId, Connection]
+    junction_passages: Mapping[JunctionPassageId, JunctionPassage]

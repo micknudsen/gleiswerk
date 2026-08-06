@@ -13,3 +13,4 @@ dependencies:
   - anaconda-client >=1
   - mkdocs-material >=9.6
   - setuptools >=77
+  - pyyaml >=6

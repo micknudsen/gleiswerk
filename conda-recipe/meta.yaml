@@ -22,6 +22,7 @@ requirements:
     - setuptools >=77
   run:
     - python >=3.11
+    - pyyaml >=6
 
 test:
   imports:

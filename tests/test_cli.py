@@ -32,27 +32,19 @@ def test_version_reports_distribution_version() -> None:
     assert result.stderr == ""
 
 
-def test_layout_validate_accepts_a_schema_version_2_layout(tmp_path: Path) -> None:
-    layout = tmp_path / "layout.toml"
+def test_layout_validate_accepts_a_schema_version_3_layout(tmp_path: Path) -> None:
+    layout = tmp_path / "layout.yaml"
     layout.write_text(
-        """schema-version = 2
-
-[blocks.west-entry]
-endpoints = ["west", "east"]
-
-[blocks.platform-1]
-endpoints = ["west", "east"]
-
-[traversals.west-to-platform]
-from = "west-entry.east"
-to = "platform-1.west"
-
-[routes.arrival]
-traversals = ["west-to-platform"]
+        """schema-version: 3
+track-sections:
+  entry:
+    ports: [west, east]
+    terminal-ports: [west, east]
+    movements: [{from: west, to: east}]
 """,
         encoding="utf-8",
     )
-    supplied_path = f"{tmp_path}/./layout.toml"
+    supplied_path = f"{tmp_path}/./layout.yaml"
 
     result = run_module("layout", "validate", supplied_path)
 
@@ -61,53 +53,28 @@ traversals = ["west-to-platform"]
     assert result.stderr == ""
 
 
-def test_layout_validate_accepts_the_checked_in_reference_layout() -> None:
-    layout = Path(__file__).parents[1] / "examples" / "reference-layout.toml"
-
-    result = run_module("layout", "validate", str(layout))
-
-    assert result.returncode == 0
-    assert result.stdout == f"Layout is valid: {layout}\n"
-    assert result.stderr == ""
-
-
-def test_layout_validate_rejects_schema_version_1(tmp_path: Path) -> None:
-    layout = tmp_path / "legacy.toml"
-    layout.write_text("schema-version = 1\n", encoding="utf-8")
+def test_layout_validate_rejects_schema_version_2(tmp_path: Path) -> None:
+    layout = tmp_path / "legacy.yaml"
+    layout.write_text("schema-version: 2\n", encoding="utf-8")
 
     result = run_module("layout", "validate", str(layout))
 
     assert result.returncode == 1
     assert result.stdout == ""
     assert result.stderr == (
-        f"ERROR E103 {layout}:schema-version:\n  unsupported schema version 1\n"
+        f"ERROR E103 {layout}:schema-version:\n  unsupported schema version 2\n"
     )
 
 
-def test_layout_validate_reports_route_continuity_diagnostics(tmp_path: Path) -> None:
-    layout = tmp_path / "disconnected.toml"
+def test_layout_validate_reports_topology_diagnostics(tmp_path: Path) -> None:
+    layout = tmp_path / "disconnected.yaml"
     layout.write_text(
-        """schema-version = 2
-
-[blocks.west-entry]
-endpoints = ["west", "east"]
-
-[blocks.platform-1]
-endpoints = ["west", "east"]
-
-[blocks.depot]
-endpoints = ["west", "east"]
-
-[traversals.west-to-platform]
-from = "west-entry.east"
-to = "platform-1.west"
-
-[traversals.platform-to-depot]
-from = "platform-1.east"
-to = "depot.west"
-
-[routes.arrival]
-traversals = ["west-to-platform", "platform-to-depot"]
+        """schema-version: 3
+track-sections:
+  entry:
+    ports: [west, east]
+    terminal-ports: [west]
+    movements: [{from: west, to: east}]
 """,
         encoding="utf-8",
     )
@@ -117,21 +84,6 @@ traversals = ["west-to-platform", "platform-to-depot"]
     assert result.returncode == 1
     assert result.stdout == ""
     assert result.stderr == (
-        f"ERROR E205 {layout}:routes.arrival.traversals[1]:\n"
-        "  traversal 'west-to-platform' does not connect to "
-        "'platform-to-depot'\n"
-    )
-
-
-def test_layout_validate_reports_the_checked_in_invalid_topology_diagnostic() -> None:
-    layout = Path(__file__).parents[1] / "examples" / "invalid-topology.toml"
-
-    result = run_module("layout", "validate", str(layout))
-
-    assert result.returncode == 1
-    assert result.stdout == ""
-    assert result.stderr == (
-        f"ERROR E205 {layout}:routes.invalid-arrival.traversals[1]:\n"
-        "  traversal 'west-to-platform' does not connect to "
-        "'platform-to-depot'\n"
+        f"ERROR E204 {layout}:track-sections.entry.ports[1]:\n"
+        "  nonterminal port has no connection\n"
     )

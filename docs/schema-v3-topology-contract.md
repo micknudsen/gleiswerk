@@ -1,7 +1,9 @@
 # Schema-v3 topology contract
 
-Status: implementation contract for Issue 68. Schema version 2 remains the
-only runtime-supported format until the schema-v3 implementation lands.
+Status: implementation contract. The core topology reader validates the
+physical graph, Occupancy Zones, Protection Zones, and path-element Protection
+Rules. Route Definition compilation and installation-binding loading remain
+separate boundaries.
 
 This document fixes the schema-version-3 configuration and deterministic
 validation contract required by [ADR 0010](adr/0010-resource-complete-topology.md).
@@ -218,6 +220,10 @@ unknown, faulted, stale, or partial-only evidence keeps it unavailable. A
 straddling train therefore affects every overlapped resource. Resources with
 no complete coverage remain unknown for movement-authority purposes.
 
+The configuration reader rejects unknown physical resources, duplicate coverage
+within one zone, missing coverage fields, and any extent other than `complete`
+or `partial`. It never infers complete coverage from adjacency or topology.
+
 ## Protection Zones and rules
 
 A Protection Zone is a named claimable resource outside, or in addition to, a
@@ -314,6 +320,17 @@ Junction in the ordered path must occur in the claim set, every applicable
 Protection Rule contribution must occur, and no undeclared claim or
 requirement may occur. A failed audit is a deterministic compilation error,
 not a partial plan.
+
+## Installation bindings
+
+An Installation Binding is a separate, revision-matched commissioning artifact,
+not a layout-topology declaration. Its detailed channel grammar is intentionally
+kept out of the topology file so controller adapters cannot redefine logical
+occupancy or Control Device semantics. A binding must identify the exact
+`sha256:<hex>` topology revision reported by the reader; a binding for any
+other revision is stale even if all logical IDs still exist. Its future loader
+must require complete, unambiguous command and independent feedback mappings
+for every Control Device, plus feedback mappings for every Occupancy Zone.
 
 ## Static compatibility boundary
 

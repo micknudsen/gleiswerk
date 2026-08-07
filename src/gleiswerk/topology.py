@@ -276,6 +276,26 @@ class ProtectionZone:
 
 
 @dataclass(frozen=True, slots=True)
+class ProtectionRule:
+    """Static non-path claims and device requirements for one path trigger."""
+
+    id: str
+    trigger: Mapping[str, str]
+    claims: tuple[ProtectionZoneId, ...] = ()
+    requirements: tuple[DeviceRequirement, ...] = ()
+
+    def __post_init__(self) -> None:
+        _require_identifier(self.id, "protection rule ID")
+        if not self.claims and not self.requirements:
+            raise ValueError("a protection rule must make a contribution")
+        _require_unique(self.claims, "protection rule claims")
+        if len({item.device_id for item in self.requirements}) != len(
+            self.requirements
+        ):
+            raise ValueError("protection rule device requirements must be unique")
+
+
+@dataclass(frozen=True, slots=True)
 class Topology:
     """The immutable, validated core rail graph from one schema-v3 layout."""
 
@@ -284,3 +304,7 @@ class Topology:
     control_devices: Mapping[ControlDeviceId, ControlDevice]
     connections: Mapping[ConnectionId, Connection]
     junction_passages: Mapping[JunctionPassageId, JunctionPassage]
+    occupancy_zones: Mapping[OccupancyZoneId, OccupancyZone]
+    protection_zones: Mapping[ProtectionZoneId, ProtectionZone]
+    protection_rules: Mapping[str, ProtectionRule]
+    revision: str

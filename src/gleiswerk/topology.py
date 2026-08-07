@@ -297,15 +297,17 @@ class ProtectionRule:
 
 @dataclass(frozen=True, slots=True)
 class ControlDeviceBinding:
-    """Independent command and feedback channels for one Control Device."""
+    """One command channel and optional independent feedback for a Control Device."""
 
     command_channel: str
-    feedback_channel: str
+    feedback_channel: str | None = None
 
     def __post_init__(self) -> None:
-        if not self.command_channel or not self.feedback_channel:
-            raise ValueError("installation binding channels must be nonempty")
-        if self.command_channel == self.feedback_channel:
+        if not self.command_channel:
+            raise ValueError("installation binding command channel must be nonempty")
+        if self.feedback_channel is not None and not self.feedback_channel:
+            raise ValueError("installation binding feedback channel must be nonempty")
+        if self.feedback_channel == self.command_channel:
             raise ValueError("command and feedback channels must be independent")
 
 

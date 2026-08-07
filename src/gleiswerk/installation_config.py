@@ -121,10 +121,7 @@ def _validate_device_bindings(
             declaration.get("command-channel"),
             declaration.get("feedback-channel"),
         )
-        for field, value in (
-            ("command-channel", command),
-            ("feedback-channel", feedback),
-        ):
+        for field, value in (("command-channel", command),):
             field_path = f"{path}.{field}"
             if not isinstance(value, str) or not value:
                 diagnostics.append(
@@ -132,6 +129,17 @@ def _validate_device_bindings(
                         "E101", field_path, "nonempty string is required", source
                     )
                 )
+        if "feedback-channel" in declaration and (
+            not isinstance(feedback, str) or not feedback
+        ):
+            diagnostics.append(
+                Diagnostic(
+                    "E101",
+                    f"{path}.feedback-channel",
+                    "nonempty string is required when declared",
+                    source,
+                )
+            )
         if isinstance(command, str) and command and command == feedback:
             diagnostics.append(
                 Diagnostic(
@@ -229,7 +237,7 @@ def _build_binding(data: Mapping[str, object]) -> InstallationBinding:
         MappingProxyType(
             {
                 ControlDeviceId(key): ControlDeviceBinding(
-                    value["command-channel"], value["feedback-channel"]
+                    value["command-channel"], value.get("feedback-channel")
                 )
                 for key, value in devices.items()
             }

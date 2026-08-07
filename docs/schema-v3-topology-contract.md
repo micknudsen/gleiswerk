@@ -333,15 +333,19 @@ topology-revision: sha256:<hex>
 control-devices:
   west-throat-turnout:
     command-channel: dcc-accessory-12
-    feedback-channel: input-7
 occupancy-zones:
   platform-detector: input-21
 ```
 
 The binding must identify the exact revision reported by the topology reader.
-It must bind every Control Device and Occupancy Zone exactly once. Command and
-feedback channels must be nonempty, globally unique, and different for one
-Control Device. A stale, incomplete, unknown, or conflicting binding is
+It must bind every Control Device and Occupancy Zone exactly once. Every
+Control Device has a nonempty command channel. An optional `feedback-channel`
+is an independent, nonempty observation channel; it must differ from the
+command channel. All declared channels are globally unique.
+
+An absent feedback channel means the observed Control Device position is
+unknown. A later Movement Authority boundary must reject movement that depends
+on that position. A stale, incomplete, unknown, or conflicting binding is
 rejected before an adapter can use it.
 
 ## Static compatibility boundary

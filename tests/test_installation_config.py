@@ -51,6 +51,26 @@ occupancy-zones:
     assert binding.occupancy_feedback[OccupancyZoneId("detector")] == "input-21"
 
 
+def test_binding_allows_a_command_only_turnout_mechanism(tmp_path: Path) -> None:
+    layout_path = tmp_path / "layout.yaml"
+    layout_path.write_text(LAYOUT, encoding="utf-8")
+    topology = load_topology(layout_path)
+    binding_path = tmp_path / "binding.yaml"
+    binding_path.write_text(
+        f"""topology-revision: {topology.revision}
+control-devices:
+  turnout: {{command-channel: dcc-12}}
+occupancy-zones:
+  detector: input-21
+""",
+        encoding="utf-8",
+    )
+
+    binding = load_installation_binding(binding_path, topology)
+
+    assert binding.control_devices[ControlDeviceId("turnout")].feedback_channel is None
+
+
 def test_binding_rejects_stale_missing_unknown_and_conflicting_channels(
     tmp_path: Path,
 ) -> None:

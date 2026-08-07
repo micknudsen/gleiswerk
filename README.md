@@ -1,7 +1,7 @@
 # Gleiswerk
 
-[![Conda Version](https://img.shields.io/conda/vn/micknudsen/gleiswerk?cacheSeconds=300)](https://anaconda.org/micknudsen/gleiswerk)
-[![Conda Downloads](https://img.shields.io/conda/dn/micknudsen/gleiswerk?cacheSeconds=300)](https://anaconda.org/micknudsen/gleiswerk)
+[![Conda Version](https://img.shields.io/conda/vn/micknudsen/gleiswerk?cacheSeconds=300&style=for-the-badge)](https://anaconda.org/micknudsen/gleiswerk)
+[![Conda Downloads](https://img.shields.io/conda/dn/micknudsen/gleiswerk?cacheSeconds=300&style=for-the-badge)](https://anaconda.org/micknudsen/gleiswerk)
 
 Gleiswerk is a local-first, configuration-driven model railway control and
 automation system. It is being designed around a Märklin H0 reference layout

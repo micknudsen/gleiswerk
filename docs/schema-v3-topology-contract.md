@@ -324,13 +324,25 @@ not a partial plan.
 ## Installation bindings
 
 An Installation Binding is a separate, revision-matched commissioning artifact,
-not a layout-topology declaration. Its detailed channel grammar is intentionally
-kept out of the topology file so controller adapters cannot redefine logical
-occupancy or Control Device semantics. A binding must identify the exact
-`sha256:<hex>` topology revision reported by the reader; a binding for any
-other revision is stale even if all logical IDs still exist. Its future loader
-must require complete, unambiguous command and independent feedback mappings
-for every Control Device, plus feedback mappings for every Occupancy Zone.
+not a layout-topology declaration. It keeps controller channel names outside
+the topology model so adapters cannot redefine logical occupancy or Control
+Device semantics.
+
+```yaml
+topology-revision: sha256:<hex>
+control-devices:
+  west-throat-turnout:
+    command-channel: dcc-accessory-12
+    feedback-channel: input-7
+occupancy-zones:
+  platform-detector: input-21
+```
+
+The binding must identify the exact revision reported by the topology reader.
+It must bind every Control Device and Occupancy Zone exactly once. Command and
+feedback channels must be nonempty, globally unique, and different for one
+Control Device. A stale, incomplete, unknown, or conflicting binding is
+rejected before an adapter can use it.
 
 ## Static compatibility boundary
 

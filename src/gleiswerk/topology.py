@@ -296,6 +296,29 @@ class ProtectionRule:
 
 
 @dataclass(frozen=True, slots=True)
+class ControlDeviceBinding:
+    """Independent command and feedback channels for one Control Device."""
+
+    command_channel: str
+    feedback_channel: str
+
+    def __post_init__(self) -> None:
+        if not self.command_channel or not self.feedback_channel:
+            raise ValueError("installation binding channels must be nonempty")
+        if self.command_channel == self.feedback_channel:
+            raise ValueError("command and feedback channels must be independent")
+
+
+@dataclass(frozen=True, slots=True)
+class InstallationBinding:
+    """Complete controller-channel mapping for one topology revision."""
+
+    topology_revision: str
+    control_devices: Mapping[ControlDeviceId, ControlDeviceBinding]
+    occupancy_feedback: Mapping[OccupancyZoneId, str]
+
+
+@dataclass(frozen=True, slots=True)
 class Topology:
     """The immutable, validated core rail graph from one schema-v3 layout."""
 

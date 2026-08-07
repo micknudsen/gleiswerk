@@ -91,6 +91,14 @@ class OccupancyExtent(StrEnum):
     PARTIAL = "partial"
 
 
+class ControlDevicePositionEvidence(StrEnum):
+    """How an Installation Binding establishes a Control Device position."""
+
+    SENSOR = "sensor"
+    ASSUMED_AFTER_DELAY = "assumed-after-delay"
+    UNKNOWN = "unknown"
+
+
 @dataclass(frozen=True, slots=True)
 class TrackSectionMovement:
     """An explicitly permitted directed movement through one track section."""
@@ -297,10 +305,12 @@ class ProtectionRule:
 
 @dataclass(frozen=True, slots=True)
 class ControlDeviceBinding:
-    """One command channel and optional independent feedback for a Control Device."""
+    """One command channel and declared position evidence for a Control Device."""
 
     command_channel: str
+    position_evidence: ControlDevicePositionEvidence
     feedback_channel: str | None = None
+    settle_delay_ms: int | None = None
 
     def __post_init__(self) -> None:
         if not self.command_channel:
@@ -309,6 +319,22 @@ class ControlDeviceBinding:
             raise ValueError("installation binding feedback channel must be nonempty")
         if self.feedback_channel == self.command_channel:
             raise ValueError("command and feedback channels must be independent")
+        if self.position_evidence is ControlDevicePositionEvidence.SENSOR:
+            if self.feedback_channel is None or self.settle_delay_ms is not None:
+                raise ValueError("sensor evidence requires feedback only")
+        elif (
+            self.position_evidence is ControlDevicePositionEvidence.ASSUMED_AFTER_DELAY
+        ):
+            if (
+                self.feedback_channel is not None
+                or not isinstance(self.settle_delay_ms, int)
+                or self.settle_delay_ms < 1
+            ):
+                raise ValueError(
+                    "assumed-after-delay evidence requires a positive delay only"
+                )
+        elif self.feedback_channel is not None or self.settle_delay_ms is not None:
+            raise ValueError("unknown evidence cannot declare feedback or a delay")
 
 
 @dataclass(frozen=True, slots=True)

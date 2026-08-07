@@ -36,7 +36,7 @@ def test_loads_complete_revision_matched_installation_binding(tmp_path: Path) ->
 control-devices:
   turnout:
     command-channel: dcc-12
-    feedback-channel: input-7
+    position-evidence: {{kind: sensor, feedback-channel: input-7}}
 occupancy-zones:
   detector: input-21
 """,
@@ -59,7 +59,9 @@ def test_binding_allows_a_command_only_turnout_mechanism(tmp_path: Path) -> None
     binding_path.write_text(
         f"""topology-revision: {topology.revision}
 control-devices:
-  turnout: {{command-channel: dcc-12}}
+  turnout:
+    command-channel: dcc-12
+    position-evidence: {{kind: unknown}}
 occupancy-zones:
   detector: input-21
 """,
@@ -71,6 +73,28 @@ occupancy-zones:
     assert binding.control_devices[ControlDeviceId("turnout")].feedback_channel is None
 
 
+def test_binding_requires_an_explicit_assumed_position_delay(tmp_path: Path) -> None:
+    layout_path = tmp_path / "layout.yaml"
+    layout_path.write_text(LAYOUT, encoding="utf-8")
+    topology = load_topology(layout_path)
+    binding_path = tmp_path / "binding.yaml"
+    binding_path.write_text(
+        f"""topology-revision: {topology.revision}
+control-devices:
+  turnout:
+    command-channel: dcc-12
+    position-evidence: {{kind: assumed-after-delay, delay-ms: 500}}
+occupancy-zones:
+  detector: input-21
+""",
+        encoding="utf-8",
+    )
+
+    binding = load_installation_binding(binding_path, topology)
+
+    assert binding.control_devices[ControlDeviceId("turnout")].settle_delay_ms == 500
+
+
 def test_binding_rejects_stale_missing_unknown_and_conflicting_channels(
     tmp_path: Path,
 ) -> None:
@@ -80,8 +104,14 @@ def test_binding_rejects_stale_missing_unknown_and_conflicting_channels(
     data: object = {
         "topology-revision": "sha256:stale",
         "control-devices": {
-            "turnout": {"command-channel": "shared", "feedback-channel": "shared"},
-            "unknown": {"command-channel": "other", "feedback-channel": "third"},
+            "turnout": {
+                "command-channel": "shared",
+                "position-evidence": {"kind": "sensor", "feedback-channel": "shared"},
+            },
+            "unknown": {
+                "command-channel": "other",
+                "position-evidence": {"kind": "unknown"},
+            },
         },
         "occupancy-zones": {"unknown": "shared"},
     }
@@ -90,7 +120,7 @@ def test_binding_rejects_stale_missing_unknown_and_conflicting_channels(
 
     assert [(item.code, item.path) for item in diagnostics] == [
         ("E209", "topology-revision"),
-        ("E210", "control-devices.turnout.feedback-channel"),
+        ("E210", "control-devices.turnout.position-evidence.feedback-channel"),
         ("E200", "control-devices.unknown"),
         ("E200", "occupancy-zones.unknown"),
         ("E111", "occupancy-zones.detector"),

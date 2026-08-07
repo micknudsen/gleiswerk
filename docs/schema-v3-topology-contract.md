@@ -333,20 +333,27 @@ topology-revision: sha256:<hex>
 control-devices:
   west-throat-turnout:
     command-channel: dcc-accessory-12
+    position-evidence:
+      kind: assumed-after-delay
+      delay-ms: 500
 occupancy-zones:
   platform-detector: input-21
 ```
 
 The binding must identify the exact revision reported by the topology reader.
 It must bind every Control Device and Occupancy Zone exactly once. Every
-Control Device has a nonempty command channel. An optional `feedback-channel`
-is an independent, nonempty observation channel; it must differ from the
-command channel. All declared channels are globally unique.
+Control Device has a nonempty command channel and one `position-evidence`
+mapping. Its `kind` is one of:
 
-An absent feedback channel means the observed Control Device position is
-unknown. A later Movement Authority boundary must reject movement that depends
-on that position. A stale, incomplete, unknown, or conflicting binding is
-rejected before an adapter can use it.
+- `sensor`, with an independent `feedback-channel`;
+- `assumed-after-delay`, with a required positive `delay-ms`; or
+- `unknown`, with no further fields.
+
+All declared channels are globally unique. `sensor` reports an observed
+position. `assumed-after-delay` records an explicitly configured operational
+assumption; it is not an observation. `unknown` cannot support a position
+claim. A stale, incomplete, unknown-object, or conflicting binding is rejected
+before an adapter can use it.
 
 ## Static compatibility boundary
 

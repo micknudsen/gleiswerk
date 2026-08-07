@@ -161,8 +161,9 @@ shared-value constraints on required control-device positions. Reservations
 may share one device constraint only when they require the same value, and a
 conflicting change remains prohibited until every holder releases it. A
 `MovementAuthority` is a separate, bounded permission to move that can be
-issued only after the required reservations, fresh observations, observed
-control-device positions, and other safety invariants have been satisfied.
+issued only after the required reservations, fresh observations, configured
+control-device position evidence, and other safety invariants have been
+satisfied.
 
 Runtime use of a compiled plan requires an exact match with the active topology
 revision, and the active installation binding must identify that same revision.
@@ -184,12 +185,13 @@ Commanded state and observed state remain distinct. Startup, stale input,
 communication loss, incomplete detector coverage, and device faults produce
 unknown or faulted evidence rather than an assumed clear or correctly aligned
 state. A successful command alone cannot satisfy a movement-authority
-precondition. A device moving away from a held requirement or losing valid
-feedback immediately invalidates dependent movement authority. Required
-constraints and evidence remain continuous invariants for the life of the
-authority; losing them never releases reservations automatically. Claims
-remain held until fail-safe release rules establish that the train has cleared
-them.
+precondition. An explicitly configured `assumed-after-delay` policy may satisfy
+the precondition after its delay; it remains distinct from sensor-observed
+position. A device moving away from a held requirement or losing valid feedback
+immediately invalidates dependent movement authority. Required constraints and
+evidence remain continuous invariants for the life of the authority; losing
+them never releases reservations automatically. Claims remain held until
+fail-safe release rules establish that the train has cleared them.
 
 ### Acceptance scenarios for the detailed schema
 

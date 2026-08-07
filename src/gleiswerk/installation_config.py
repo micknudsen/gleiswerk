@@ -13,6 +13,7 @@ import yaml
 from gleiswerk.topology import (
     ControlDeviceBinding,
     ControlDeviceId,
+    ControlDevicePositionEvidence,
     InstallationBinding,
     OccupancyZoneId,
     Topology,
@@ -111,16 +112,15 @@ def _validate_device_bindings(
         if not _is_mapping(declaration):
             diagnostics.append(Diagnostic("E102", path, "expected a mapping", source))
             continue
-        for field in sorted(set(declaration) - {"command-channel", "feedback-channel"}):
+        for field in sorted(
+            set(declaration) - {"command-channel", "position-evidence"}
+        ):
             diagnostics.append(
                 Diagnostic(
                     "E106", f"{path}.{field}", "unknown declaration field", source
                 )
             )
-        command, feedback = (
-            declaration.get("command-channel"),
-            declaration.get("feedback-channel"),
-        )
+        command = declaration.get("command-channel")
         for field, value in (("command-channel", command),):
             field_path = f"{path}.{field}"
             if not isinstance(value, str) or not value:
@@ -129,32 +129,82 @@ def _validate_device_bindings(
                         "E101", field_path, "nonempty string is required", source
                     )
                 )
-        if "feedback-channel" in declaration and (
-            not isinstance(feedback, str) or not feedback
-        ):
-            diagnostics.append(
-                Diagnostic(
-                    "E101",
-                    f"{path}.feedback-channel",
-                    "nonempty string is required when declared",
-                    source,
-                )
-            )
-        if isinstance(command, str) and command and command == feedback:
-            diagnostics.append(
-                Diagnostic(
-                    "E210",
-                    f"{path}.feedback-channel",
-                    "command and feedback channels must be independent",
-                    source,
-                )
-            )
+        _validate_position_evidence(declaration, path, command, diagnostics, source)
     for identifier in sorted(expected - set(bindings)):
         diagnostics.append(
             Diagnostic(
                 "E111", f"control-devices.{identifier}", "binding is required", source
             )
         )
+
+
+def _validate_position_evidence(
+    declaration: Mapping[str, object],
+    path: str,
+    command: object,
+    diagnostics: list[Diagnostic],
+    source: Path | None,
+) -> None:
+    evidence = declaration.get("position-evidence")
+    evidence_path = f"{path}.position-evidence"
+    if not _is_mapping(evidence):
+        diagnostics.append(
+            Diagnostic("E101", evidence_path, "field is required", source)
+        )
+        return
+    kind = evidence.get("kind")
+    if kind not in {item.value for item in ControlDevicePositionEvidence}:
+        diagnostics.append(
+            Diagnostic(
+                "E114",
+                f"{evidence_path}.kind",
+                "invalid position evidence kind",
+                source,
+            )
+        )
+        return
+    allowed = {
+        "sensor": {"kind", "feedback-channel"},
+        "assumed-after-delay": {"kind", "delay-ms"},
+        "unknown": {"kind"},
+    }[cast(str, kind)]
+    for field in sorted(set(evidence) - allowed):
+        diagnostics.append(
+            Diagnostic(
+                "E106", f"{evidence_path}.{field}", "unknown declaration field", source
+            )
+        )
+    if kind == "sensor":
+        feedback = evidence.get("feedback-channel")
+        if not isinstance(feedback, str) or not feedback:
+            diagnostics.append(
+                Diagnostic(
+                    "E101",
+                    f"{evidence_path}.feedback-channel",
+                    "nonempty string is required",
+                    source,
+                )
+            )
+        elif feedback == command:
+            diagnostics.append(
+                Diagnostic(
+                    "E210",
+                    f"{evidence_path}.feedback-channel",
+                    "command and feedback channels must be independent",
+                    source,
+                )
+            )
+    elif kind == "assumed-after-delay":
+        delay = evidence.get("delay-ms")
+        if type(delay) is not int or delay < 1:
+            diagnostics.append(
+                Diagnostic(
+                    "E111",
+                    f"{evidence_path}.delay-ms",
+                    "positive integer is required",
+                    source,
+                )
+            )
 
 
 def _validate_occupancy_bindings(
@@ -203,7 +253,10 @@ def _validate_channel_uniqueness(
             values = (
                 (
                     ("command-channel", declaration.get("command-channel")),
-                    ("feedback-channel", declaration.get("feedback-channel")),
+                    (
+                        "feedback-channel",
+                        _feedback_channel(declaration),
+                    ),
                 )
                 if _is_mapping(declaration)
                 else (("feedback-channel", declaration),)
@@ -230,19 +283,40 @@ def _validate_channel_uniqueness(
 
 
 def _build_binding(data: Mapping[str, object]) -> InstallationBinding:
-    devices = cast(Mapping[str, Mapping[str, str]], data["control-devices"])
+    devices = cast(Mapping[str, Mapping[str, object]], data["control-devices"])
     occupancy = cast(Mapping[str, str], data["occupancy-zones"])
     return InstallationBinding(
         cast(str, data["topology-revision"]),
         MappingProxyType(
             {
-                ControlDeviceId(key): ControlDeviceBinding(
-                    value["command-channel"], value.get("feedback-channel")
-                )
+                ControlDeviceId(key): _build_control_device_binding(value)
                 for key, value in devices.items()
             }
         ),
         MappingProxyType(
             {OccupancyZoneId(key): value for key, value in occupancy.items()}
         ),
+    )
+
+
+def _feedback_channel(declaration: Mapping[str, object]) -> object:
+    evidence = declaration.get("position-evidence")
+    return evidence.get("feedback-channel") if _is_mapping(evidence) else None
+
+
+def _evidence(value: Mapping[str, object]) -> Mapping[str, str | int]:
+    return cast(Mapping[str, str | int], value["position-evidence"])
+
+
+def _build_control_device_binding(
+    value: Mapping[str, object],
+) -> ControlDeviceBinding:
+    evidence = _evidence(value)
+    feedback = evidence.get("feedback-channel")
+    delay = evidence.get("delay-ms")
+    return ControlDeviceBinding(
+        cast(str, value["command-channel"]),
+        ControlDevicePositionEvidence(cast(str, evidence["kind"])),
+        feedback if isinstance(feedback, str) else None,
+        delay if type(delay) is int else None,
     )

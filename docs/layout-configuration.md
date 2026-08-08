@@ -1,164 +1,136 @@
 # Layout configuration
 
-Gleiswerk uses schema version 2 to describe a logical railway topology. It
-defines named blocks, endpoints, directed traversals, turnout conditions, and
-routes. It does not define controller addresses, geometry, occupancy,
-reservations, commands, signals, train movement, simulator behavior, or
-hardware behavior.
+Gleiswerk layout files use **schema version 3**. A layout is a UTF-8 YAML
+document with a lowercase `.yaml` suffix. Schema version 3 is the only layout
+format the reader accepts. Earlier schemas are historical records, not input
+formats and not migration sources.
 
-Schema version 1 is not supported. Before the first stable release, Gleiswerk
-uses one topology model rather than retaining a compatibility representation.
-Schema version 1 described routes without topology; schema version 2 replaces
-that representation with directed traversals and their turnout requirements.
+A layout describes logical railway topology: the track sections, junctions,
+their ports, the permitted directed movements, and the resources a route needs.
+It does not contain controller addresses, screen geometry, reservations,
+signals, commands, or permission for a train to move.
 
-Each layout is a UTF-8 TOML file with the `.toml` extension. The checked-in
-[reference layout](https://github.com/micknudsen/gleiswerk/blob/master/examples/reference-layout.toml)
-exercises the complete vocabulary and is validated by the public command-line
-interface in the automated test suite.
+The complete field-by-field contract is in the [schema-v3 topology
+contract](schema-v3-topology-contract.md). This page is the authoring guide.
 
-## Top-level structure
+## Start with a validated reference layout
 
-`schema-version` must be the integer `2`. The top-level tables `blocks`,
-`turnouts`, and `routes` are optional; `traversals` is required. Every
-collection is keyed by a stable lowercase kebab-case ID:
+The checked-in [station reference layout](https://github.com/micknudsen/gleiswerk/blob/master/tests/fixtures/schema_v3/valid-station.yaml)
+shows a complete two-throat station. The smaller [direct-connection
+layout](https://github.com/micknudsen/gleiswerk/blob/master/tests/fixtures/schema_v3/valid-direct.yaml)
+is useful when learning the vocabulary. Both are loaded and compiled by the
+test suite.
+
+Validate a copy before commissioning it:
+
+```console
+gleiswerk layout validate layout.yaml
+```
+
+The command prints `Layout is valid: ...` and exits zero for a valid document.
+It prints ordered diagnostics to standard error and exits one otherwise. For
+example, the [dangling-port example](https://github.com/micknudsen/gleiswerk/blob/master/tests/fixtures/schema_v3/invalid-dangling-port.yaml)
+is deliberately invalid and is asserted to report `E204` by the test suite.
+
+## Topology vocabulary
+
+Every collection is keyed by a stable lowercase kebab-case ID:
 
 ```text
 ^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$
 ```
 
-```toml
-schema-version = 2
-
-[blocks.west-entry]
-endpoints = ["west", "east"]
-
-[blocks.platform-1]
-endpoints = ["west", "east"]
-
-[traversals.west-to-platform]
-from = "west-entry.east"
-to = "platform-1.west"
-
-[routes.arrival]
-traversals = ["west-to-platform"]
+```yaml
+schema-version: 3
+track-sections:
+  approach:
+    ports: [west, east]
+    terminal-ports: [west]
+    movements:
+      - from: west
+        to: east
+  platform:
+    ports: [west, east]
+    terminal-ports: [east]
+    movements:
+      - from: west
+        to: east
+connections:
+  approach-to-platform:
+    ports:
+      - track-section:approach:east
+      - track-section:platform:west
+    movements:
+      - from: track-section:approach:east
+        to: track-section:platform:west
+route-definitions:
+  arrival:
+    entry: track-section:approach:west
+    exit: track-section:platform:east
 ```
 
-## Blocks and endpoints
+`Track Sections` are claimable physical spans. They own named `Ports`, declare
+which directed movements are permitted inside the span, and may mark boundary
+ports as terminal. A nonterminal port must occur in exactly one `Connection`.
 
-Every block has exactly two distinct local endpoint IDs. An endpoint reference
-has the form `block-id.endpoint-id`; it describes a logical boundary, not a
-coordinate or physical drawing position. `display-name` is optional operator
-metadata and must be a non-empty string when supplied.
+A `Connection` is a fixed adjacency between exactly two ports. It proves that
+two owners meet, but it is not itself a claimable physical resource. Its
+directed movements must be declared; reverse travel is never inferred.
 
-## Turnouts
+A `Junction` owns three or more ports. Each permitted movement through it is a
+`Junction Passage` with a source port, a destination port, and any required
+`Control Device` positions. The compiler claims the whole junction for a
+selected passage, not merely one branch through it.
 
-A turnout declares two or more distinct position IDs. Positions are local to
-the turnout and describe selectable states only.
+`Occupancy Zones` declare evidence coverage over track sections. `Protection
+Zones` and `Protection Rules` add explicit fouling, flank, crossing, or overlap
+claims and device requirements. They are topology declarations, not adapter
+configuration. Put controller channel names in a separate, revision-matched
+Installation Binding.
 
-```toml
-[turnouts.west-throat]
-display-name = "West throat turnout"
-positions = ["normal", "reverse"]
+## Route definitions and compiled plans
+
+A `Route Definition` specifies an `entry`, an `exit`, and optionally an
+ordered `via` list of Track Section, Connection, or Junction Passage
+constraints. It does not list a path, claims, or turnout requirements:
+
+```yaml
+route-definitions:
+  west-to-platform-1:
+    entry: track-section:west-entry:west
+    exit: track-section:platform-1:east
+    via: [junction-passage:west-to-platform-1]
 ```
 
-## Traversals
+The RoutePlan compiler finds exactly one non-repeating path using the declared
+movements. It then produces an immutable plan containing the ordered path,
+all Track Section, Junction, and Protection Zone claims, Control Device
+requirements, provenance, and the topology revision fingerprint. If there is
+no path, more than one eligible path, or a path revisits a physical resource,
+compilation fails instead of choosing a route.
 
-The required `traversals` table declares directed logical passages. Each
-traversal has required `from` and `to` endpoint references that resolve to
-declared block endpoints and differ from one another. Reverse passages are
-separate declarations.
+The [route compiler tests](https://github.com/micknudsen/gleiswerk/blob/master/tests/test_route_compiler.py)
+exercise the direct, station, protection, ambiguous, and repeated-resource
+examples.
 
-A traversal may have a `turnouts` table mapping turnout IDs to declared
-positions. These are availability preconditions only; loading a layout never
-commands or changes a turnout.
+## Safety boundary
 
-```toml
-[traversals.west-to-platform]
-from = "west-entry.east"
-to = "platform-1.west"
+Validation and compilation are safety checks on declared data. They do **not**
+reserve resources, command devices, clear signals, establish movement
+authority, or authorize a train to move. Runtime authorization must additionally
+use current, complete occupancy and device-position evidence and the exact
+topology revision for its Installation Binding.
 
-[traversals.west-to-platform.turnouts]
-west-throat = "normal"
-```
+Unknown, stale, faulted, or partial-only evidence is not clear evidence. It
+must keep affected claims unavailable.
 
-## Routes
+## Authoring checklist
 
-Every route has a non-empty ordered `traversals` array. A route contains no
-block list or route-level turnout requirements; traversals are the topology
-source of truth.
-
-```toml
-[routes.arrival]
-display-name = "Arrival"
-traversals = ["west-to-platform"]
-```
-
-Gleiswerk validates the shape and references of a topology declaration. It also
-requires each route's successive traversals to meet at the same endpoint and
-derives the route's turnout requirements from all its traversals. A route is
-invalid when its traversals require different positions for the same turnout.
-
-Topology validation is not a reservation and does not authorize movement. A
-valid route only describes a continuous, internally consistent topology path;
-it neither reserves blocks or turnouts nor commands hardware, clears signals,
-or permits a train to move.
-
-## Validation and diagnostics
-
-Validation is deterministic. For syntactically valid TOML, diagnostics appear
-in configuration order: top-level fields, blocks by ID, turnouts by ID,
-traversals by ID, then routes by ID. Each diagnostic has a stable error code,
-a configuration path, and a human-readable message.
-
-```text
-ERROR E201 traversals.west-to-platform.to:
-  references unknown endpoint "platform-1.west"
-```
-
-| Range | Concern |
-| --- | --- |
-| `E0xx` | File suffix/access, UTF-8 decoding, and TOML syntax. |
-| `E1xx` | Schema vocabulary, types, identifiers, and local object rules. |
-| `E2xx` | Endpoint, turnout-position, and traversal references. |
-
-Unknown fields are errors at every level. This prevents misspelled or
-future-version fields from being silently ignored.
-
-The checked-in [invalid topology example](https://github.com/micknudsen/gleiswerk/blob/master/examples/invalid-topology.toml)
-demonstrates an actionable route-continuity diagnostic. Its two traversals meet
-different endpoints of `platform-1`; Gleiswerk does not infer a connection
-through a block. Validate it with the CLI to see the `E205` diagnostic that
-identifies the second traversal in the route.
-
-## Command-line validation
-
-Validate a layout file before using it with Gleiswerk:
-
-```console
-gleiswerk layout validate layout.toml
-```
-
-For a valid layout, the command prints the supplied path and exits with status
-zero. For an invalid layout it exits with status 1 and writes its ordered
-diagnostics to standard error.
-
-## Loading API
-
-Python callers load a layout through the configuration boundary:
-
-```python
-from pathlib import Path
-
-from gleiswerk.layout_config import LayoutConfigurationError, load_layout
-
-try:
-    layout = load_layout(Path("layout.toml"))
-except LayoutConfigurationError as error:
-    for diagnostic in error.diagnostics:
-        print(diagnostic.format())
-```
-
-`load_layout` accepts only an existing, readable regular `.toml` file. It
-raises `LayoutConfigurationError` for file, encoding, TOML syntax, and
-structural-validation failures. Diagnostics retain their source separately
-from their configuration path, so callers never need to parse display text.
+1. Give every physical track span and junction its own logical resource.
+2. Declare every port boundary, direct connection, and permitted direction.
+3. Add junction passages with every required device position.
+4. Define routes by entry, exit, and only the constraints needed to make the
+   intended path unique.
+5. Declare occupancy coverage and non-path protection explicitly.
+6. Validate the YAML, compile the routes in tests, and review the resulting
+   claims and requirements against the physical layout.

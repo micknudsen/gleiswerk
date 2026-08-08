@@ -16,6 +16,7 @@ JunctionPassageId = NewType("JunctionPassageId", str)
 OccupancyZoneId = NewType("OccupancyZoneId", str)
 PortId = NewType("PortId", str)
 ProtectionZoneId = NewType("ProtectionZoneId", str)
+RouteDefinitionId = NewType("RouteDefinitionId", str)
 TrackSectionId = NewType("TrackSectionId", str)
 
 
@@ -89,6 +90,14 @@ class OccupancyExtent(StrEnum):
 
     COMPLETE = "complete"
     PARTIAL = "partial"
+
+
+class ControlDevicePositionEvidence(StrEnum):
+    """How an Installation Binding establishes a Control Device position."""
+
+    SENSOR = "sensor"
+    ASSUMED_AFTER_DELAY = "assumed-after-delay"
+    UNKNOWN = "unknown"
 
 
 @dataclass(frozen=True, slots=True)
@@ -276,6 +285,79 @@ class ProtectionZone:
 
 
 @dataclass(frozen=True, slots=True)
+class ProtectionRule:
+    """Static non-path claims and device requirements for one path trigger."""
+
+    id: str
+    trigger: Mapping[str, str]
+    claims: tuple[ProtectionZoneId, ...] = ()
+    requirements: tuple[DeviceRequirement, ...] = ()
+
+    def __post_init__(self) -> None:
+        _require_identifier(self.id, "protection rule ID")
+        if not self.claims and not self.requirements:
+            raise ValueError("a protection rule must make a contribution")
+        _require_unique(self.claims, "protection rule claims")
+        if len({item.device_id for item in self.requirements}) != len(
+            self.requirements
+        ):
+            raise ValueError("protection rule device requirements must be unique")
+
+
+@dataclass(frozen=True, slots=True)
+class RouteDefinition:
+    """Declared route boundaries and ordered constraints before compilation."""
+
+    id: RouteDefinitionId
+    entry: PortReference
+    exit: PortReference
+    via: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class ControlDeviceBinding:
+    """One command channel and declared position evidence for a Control Device."""
+
+    command_channel: str
+    position_evidence: ControlDevicePositionEvidence
+    feedback_channel: str | None = None
+    settle_delay_ms: int | None = None
+
+    def __post_init__(self) -> None:
+        if not self.command_channel:
+            raise ValueError("installation binding command channel must be nonempty")
+        if self.feedback_channel is not None and not self.feedback_channel:
+            raise ValueError("installation binding feedback channel must be nonempty")
+        if self.feedback_channel == self.command_channel:
+            raise ValueError("command and feedback channels must be independent")
+        if self.position_evidence is ControlDevicePositionEvidence.SENSOR:
+            if self.feedback_channel is None or self.settle_delay_ms is not None:
+                raise ValueError("sensor evidence requires feedback only")
+        elif (
+            self.position_evidence is ControlDevicePositionEvidence.ASSUMED_AFTER_DELAY
+        ):
+            if (
+                self.feedback_channel is not None
+                or not isinstance(self.settle_delay_ms, int)
+                or self.settle_delay_ms < 1
+            ):
+                raise ValueError(
+                    "assumed-after-delay evidence requires a positive delay only"
+                )
+        elif self.feedback_channel is not None or self.settle_delay_ms is not None:
+            raise ValueError("unknown evidence cannot declare feedback or a delay")
+
+
+@dataclass(frozen=True, slots=True)
+class InstallationBinding:
+    """Complete controller-channel mapping for one topology revision."""
+
+    topology_revision: str
+    control_devices: Mapping[ControlDeviceId, ControlDeviceBinding]
+    occupancy_feedback: Mapping[OccupancyZoneId, str]
+
+
+@dataclass(frozen=True, slots=True)
 class Topology:
     """The immutable, validated core rail graph from one schema-v3 layout."""
 
@@ -284,3 +366,8 @@ class Topology:
     control_devices: Mapping[ControlDeviceId, ControlDevice]
     connections: Mapping[ConnectionId, Connection]
     junction_passages: Mapping[JunctionPassageId, JunctionPassage]
+    occupancy_zones: Mapping[OccupancyZoneId, OccupancyZone]
+    protection_zones: Mapping[ProtectionZoneId, ProtectionZone]
+    protection_rules: Mapping[str, ProtectionRule]
+    route_definitions: Mapping[RouteDefinitionId, RouteDefinition]
+    revision: str

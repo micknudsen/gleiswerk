@@ -1,0 +1,6 @@
+topology-revision: sha256:stale
+control-devices:
+  turnout:
+    command-channel: shared
+    position-evidence: {kind: sensor, feedback-channel: shared}
+occupancy-zones: {}

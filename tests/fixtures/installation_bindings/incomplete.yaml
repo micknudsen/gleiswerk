@@ -1,0 +1,4 @@
+topology-revision: sha256:stale
+control-devices:
+  turnout: {position-evidence: {kind: unknown}}
+occupancy-zones: {}

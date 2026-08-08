@@ -45,9 +45,10 @@ separate permission over the same physical junction.
 _Avoid_: a long-distance traversal that hides intervening Track Sections.
 
 **Control Device**:
-A logical state-bearing device whose required and observed positions constrain
-movement through the topology. Its hardware channel belongs to an Installation
-Binding.
+A logical state-bearing device whose required position constrains movement
+through the topology. Its position evidence is sensor-observed,
+assumed-after-delay, or unknown. Its hardware channel belongs to an
+Installation Binding.
 _Avoid_: controller address; Junction.
 
 **Occupancy Zone**:
@@ -95,5 +96,5 @@ _Avoid_: route plan; successful device command.
 **Installation Binding**:
 A validated, revision-matched artifact mapping logical Control Devices and
 observations to controller-specific channels while keeping those addresses
-outside the topology model.
+outside the topology model. It declares each Control Device's position evidence.
 _Avoid_: hardware addresses in topology objects.

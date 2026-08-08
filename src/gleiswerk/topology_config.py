@@ -6,6 +6,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
+from hashlib import sha256
 from pathlib import Path
 from types import MappingProxyType
 from typing import NoReturn, TypeGuard, cast
@@ -25,13 +26,24 @@ from gleiswerk.topology import (
     JunctionPassage,
     JunctionPassageId,
     JunctionPort,
+    JunctionResource,
+    OccupancyCoverage,
+    OccupancyExtent,
+    OccupancyZone,
+    OccupancyZoneId,
     PortId,
     PortReference,
+    ProtectionRule,
+    ProtectionZone,
+    ProtectionZoneId,
+    RouteDefinition,
+    RouteDefinitionId,
     Topology,
     TrackSection,
     TrackSectionId,
     TrackSectionMovement,
     TrackSectionPort,
+    TrackSectionResource,
 )
 
 _IDENTIFIER = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z")
@@ -42,6 +54,10 @@ _TOP_LEVEL_FIELDS = {
     "control-devices",
     "connections",
     "junction-passages",
+    "occupancy-zones",
+    "protection-zones",
+    "protection-rules",
+    "route-definitions",
 }
 
 
@@ -112,7 +128,7 @@ def load_topology(path: Path) -> Topology:
     if diagnostics:
         raise TopologyConfigurationError(diagnostics)
     assert isinstance(data, Mapping)
-    return _build_topology(data)
+    return _build_topology(data, f"sha256:{sha256(text.encode('utf-8')).hexdigest()}")
 
 
 def validate_topology_data(
@@ -129,15 +145,33 @@ def validate_topology_data(
     devices = _collection(data, "control-devices")
     connections = _collection(data, "connections")
     passages = _collection(data, "junction-passages")
+    occupancy_zones = _collection(data, "occupancy-zones")
+    protection_zones = _collection(data, "protection-zones")
+    protection_rules = _collection(data, "protection-rules")
+    routes = _collection(data, "route-definitions")
     _validate_sections(sections, diagnostics, source)
     _validate_junctions(junctions, diagnostics, source)
     _validate_devices(devices, diagnostics, source)
     _validate_connections(connections, diagnostics, source)
     _validate_passages(passages, diagnostics, source)
+    _validate_occupancy_zones(occupancy_zones, diagnostics, source)
+    _validate_protection_zones(protection_zones, diagnostics, source)
+    _validate_protection_rules(protection_rules, diagnostics, source)
+    _validate_route_definitions(routes, diagnostics, source)
     _validate_local_port_references(sections, diagnostics, source, "track-sections")
     _validate_local_port_references(junctions, diagnostics, source, "junctions")
     _validate_references(
-        sections, junctions, devices, connections, passages, diagnostics, source
+        sections,
+        junctions,
+        devices,
+        connections,
+        passages,
+        occupancy_zones,
+        protection_zones,
+        protection_rules,
+        routes,
+        diagnostics,
+        source,
     )
     return tuple(diagnostics)
 
@@ -359,6 +393,217 @@ def _validate_passages(
                     )
 
 
+def _validate_occupancy_zones(
+    items: Mapping[str, object], diagnostics: list[Diagnostic], source: Path | None
+) -> None:
+    for identifier in sorted(items):
+        path = f"occupancy-zones.{identifier}"
+        declaration = items[identifier]
+        if not _is_identifier(identifier):
+            diagnostics.append(
+                Diagnostic("E110", path, "invalid occupancy zone ID", source)
+            )
+            continue
+        if not _is_mapping(declaration):
+            diagnostics.append(Diagnostic("E102", path, "expected a mapping", source))
+            continue
+        _unknown_fields(declaration, {"coverage"}, path, diagnostics, source)
+        coverage = declaration.get("coverage")
+        if not _is_list(coverage):
+            diagnostics.append(
+                Diagnostic("E102", f"{path}.coverage", "expected an array", source)
+            )
+            continue
+        if not coverage:
+            diagnostics.append(
+                Diagnostic(
+                    "E111", f"{path}.coverage", "expected at least one value", source
+                )
+            )
+        for index, item in enumerate(coverage):
+            item_path = f"{path}.coverage[{index}]"
+            if not _is_mapping(item):
+                diagnostics.append(
+                    Diagnostic("E102", item_path, "expected a mapping", source)
+                )
+                continue
+            _unknown_fields(
+                item, {"resource", "extent"}, item_path, diagnostics, source
+            )
+            if "resource" not in item:
+                diagnostics.append(
+                    Diagnostic(
+                        "E101", f"{item_path}.resource", "field is required", source
+                    )
+                )
+            elif _parse_physical_resource_reference(item["resource"]) is None:
+                diagnostics.append(
+                    Diagnostic(
+                        "E110",
+                        f"{item_path}.resource",
+                        "invalid physical resource reference",
+                        source,
+                    )
+                )
+            if "extent" not in item:
+                diagnostics.append(
+                    Diagnostic(
+                        "E101", f"{item_path}.extent", "field is required", source
+                    )
+                )
+            elif item["extent"] not in {"complete", "partial"}:
+                diagnostics.append(
+                    Diagnostic(
+                        "E114",
+                        f"{item_path}.extent",
+                        "expected 'complete' or 'partial'",
+                        source,
+                    )
+                )
+
+
+def _validate_protection_zones(
+    items: Mapping[str, object], diagnostics: list[Diagnostic], source: Path | None
+) -> None:
+    for identifier in sorted(items):
+        path = f"protection-zones.{identifier}"
+        declaration = items[identifier]
+        if not _is_identifier(identifier):
+            diagnostics.append(
+                Diagnostic("E110", path, "invalid protection zone ID", source)
+            )
+        elif not _is_mapping(declaration):
+            diagnostics.append(Diagnostic("E102", path, "expected a mapping", source))
+        elif declaration:
+            _unknown_fields(declaration, set(), path, diagnostics, source)
+
+
+def _validate_protection_rules(
+    items: Mapping[str, object], diagnostics: list[Diagnostic], source: Path | None
+) -> None:
+    for identifier in sorted(items):
+        path = f"protection-rules.{identifier}"
+        declaration = items[identifier]
+        if not _is_identifier(identifier):
+            diagnostics.append(
+                Diagnostic("E110", path, "invalid protection rule ID", source)
+            )
+            continue
+        if not _is_mapping(declaration):
+            diagnostics.append(Diagnostic("E102", path, "expected a mapping", source))
+            continue
+        _unknown_fields(
+            declaration,
+            {"trigger", "claims", "requirements"},
+            path,
+            diagnostics,
+            source,
+        )
+        trigger = declaration.get("trigger")
+        if not _is_mapping(trigger):
+            diagnostics.append(
+                Diagnostic("E102", f"{path}.trigger", "expected a mapping", source)
+            )
+        elif trigger.get("kind") not in {
+            "track-section",
+            "connection",
+            "junction-passage",
+            "route-boundary",
+            "route-definition",
+        }:
+            diagnostics.append(
+                Diagnostic(
+                    "E114",
+                    f"{path}.trigger.kind",
+                    "unsupported protection trigger kind",
+                    source,
+                )
+            )
+        claims = declaration.get("claims", [])
+        requirements = declaration.get("requirements", {})
+        if not _is_list(claims):
+            diagnostics.append(
+                Diagnostic("E102", f"{path}.claims", "expected an array", source)
+            )
+        else:
+            for index, claim in enumerate(claims):
+                if _parse_protection_zone_reference(claim) is None:
+                    diagnostics.append(
+                        Diagnostic(
+                            "E110",
+                            f"{path}.claims[{index}]",
+                            "invalid protection zone reference",
+                            source,
+                        )
+                    )
+        if not _is_mapping(requirements):
+            diagnostics.append(
+                Diagnostic("E102", f"{path}.requirements", "expected a mapping", source)
+            )
+        else:
+            for device, position in sorted(requirements.items()):
+                if not _is_identifier(device) or not _is_identifier(position):
+                    diagnostics.append(
+                        Diagnostic(
+                            "E110",
+                            f"{path}.requirements.{device}",
+                            "expected identifier references",
+                            source,
+                        )
+                    )
+        if not claims and not requirements:
+            diagnostics.append(
+                Diagnostic("E301", path, "protection rule has no contribution", source)
+            )
+
+
+def _validate_route_definitions(
+    items: Mapping[str, object], diagnostics: list[Diagnostic], source: Path | None
+) -> None:
+    for identifier in sorted(items):
+        path = f"route-definitions.{identifier}"
+        declaration = items[identifier]
+        if not _is_identifier(identifier):
+            diagnostics.append(
+                Diagnostic("E110", path, "invalid route definition ID", source)
+            )
+            continue
+        if not _is_mapping(declaration):
+            diagnostics.append(Diagnostic("E102", path, "expected a mapping", source))
+            continue
+        _unknown_fields(
+            declaration, {"entry", "exit", "via"}, path, diagnostics, source
+        )
+        for field in ("entry", "exit"):
+            value = declaration.get(field)
+            if value is None:
+                diagnostics.append(
+                    Diagnostic("E101", f"{path}.{field}", "field is required", source)
+                )
+            elif _parse_port_reference(value) is None:
+                diagnostics.append(
+                    Diagnostic(
+                        "E110", f"{path}.{field}", "invalid port reference", source
+                    )
+                )
+        via = declaration.get("via", [])
+        if not _is_list(via):
+            diagnostics.append(
+                Diagnostic("E102", f"{path}.via", "expected an array", source)
+            )
+        elif any(not _parse_path_constraint(item) for item in via):
+            for index, item in enumerate(via):
+                if not _parse_path_constraint(item):
+                    diagnostics.append(
+                        Diagnostic(
+                            "E110",
+                            f"{path}.via[{index}]",
+                            "invalid path constraint",
+                            source,
+                        )
+                    )
+
+
 def _unknown_fields(
     declaration: Mapping[str, object],
     allowed: set[str],
@@ -569,12 +814,49 @@ def _parse_port_reference(value: object) -> tuple[str, str, str] | None:
     return parts[0], parts[1], parts[2]
 
 
+def _parse_physical_resource_reference(value: object) -> tuple[str, str] | None:
+    if not isinstance(value, str):
+        return None
+    parts = value.split(":")
+    if len(parts) != 2 or parts[0] not in {"track-section", "junction"}:
+        return None
+    if not _is_identifier(parts[1]):
+        return None
+    return parts[0], parts[1]
+
+
+def _parse_protection_zone_reference(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    parts = value.split(":")
+    if len(parts) != 2 or parts[0] != "protection-zone" or not _is_identifier(parts[1]):
+        return None
+    return parts[1]
+
+
+def _parse_path_constraint(value: object) -> tuple[str, str] | None:
+    if not isinstance(value, str):
+        return None
+    parts = value.split(":")
+    if len(parts) != 2 or parts[0] not in {
+        "track-section",
+        "connection",
+        "junction-passage",
+    }:
+        return None
+    return (parts[0], parts[1]) if _is_identifier(parts[1]) else None
+
+
 def _validate_references(
     sections: Mapping[str, object],
     junctions: Mapping[str, object],
     devices: Mapping[str, object],
     connections: Mapping[str, object],
     passages: Mapping[str, object],
+    occupancy_zones: Mapping[str, object],
+    protection_zones: Mapping[str, object],
+    protection_rules: Mapping[str, object],
+    routes: Mapping[str, object],
     diagnostics: list[Diagnostic],
     source: Path | None,
 ) -> None:
@@ -656,6 +938,20 @@ def _validate_references(
                 )
             )
     _validate_passage_references(passages, junctions, devices, diagnostics, source)
+    _validate_occupancy_references(
+        occupancy_zones, sections, junctions, diagnostics, source
+    )
+    _validate_protection_rule_references(
+        protection_rules,
+        sections,
+        connections,
+        passages,
+        devices,
+        protection_zones,
+        routes,
+        diagnostics,
+        source,
+    )
 
 
 def _declared_ports(
@@ -798,7 +1094,200 @@ def _validate_passage_references(
                 )
 
 
-def _build_topology(data: Mapping[str, object]) -> Topology:
+def _validate_occupancy_references(
+    zones: Mapping[str, object],
+    sections: Mapping[str, object],
+    junctions: Mapping[str, object],
+    diagnostics: list[Diagnostic],
+    source: Path | None,
+) -> None:
+    for zone_id in sorted(zones):
+        declaration = zones[zone_id]
+        if not _is_mapping(declaration) or not _is_list(declaration.get("coverage")):
+            continue
+        seen: set[tuple[str, str]] = set()
+        for index, item in enumerate(declaration["coverage"]):
+            if not _is_mapping(item):
+                continue
+            reference = _parse_physical_resource_reference(item.get("resource"))
+            path = f"occupancy-zones.{zone_id}.coverage[{index}].resource"
+            if reference is None:
+                continue
+            collection = sections if reference[0] == "track-section" else junctions
+            if reference[1] not in collection:
+                diagnostics.append(
+                    Diagnostic(
+                        "E200", path, "resource reference does not resolve", source
+                    )
+                )
+            elif reference in seen:
+                diagnostics.append(
+                    Diagnostic(
+                        "E208",
+                        path,
+                        "occupancy coverage repeats one resource in a zone",
+                        source,
+                    )
+                )
+            seen.add(reference)
+
+
+def _validate_protection_rule_references(
+    rules: Mapping[str, object],
+    sections: Mapping[str, object],
+    connections: Mapping[str, object],
+    passages: Mapping[str, object],
+    devices: Mapping[str, object],
+    protection_zones: Mapping[str, object],
+    routes: Mapping[str, object],
+    diagnostics: list[Diagnostic],
+    source: Path | None,
+) -> None:
+    for rule_id in sorted(rules):
+        declaration = rules[rule_id]
+        if not _is_mapping(declaration):
+            continue
+        base_path = f"protection-rules.{rule_id}"
+        claims = declaration.get("claims", [])
+        if _is_list(claims):
+            seen_claims: set[str] = set()
+            for index, claim in enumerate(claims):
+                claim_id = _parse_protection_zone_reference(claim)
+                path = f"{base_path}.claims[{index}]"
+                if claim_id is None:
+                    continue
+                if claim_id not in protection_zones:
+                    diagnostics.append(
+                        Diagnostic(
+                            "E200",
+                            path,
+                            "protection zone reference does not resolve",
+                            source,
+                        )
+                    )
+                elif claim_id in seen_claims:
+                    diagnostics.append(
+                        Diagnostic("E112", path, "duplicate value", source)
+                    )
+                seen_claims.add(claim_id)
+        requirements = declaration.get("requirements", {})
+        if _is_mapping(requirements):
+            for device, position in requirements.items():
+                path = f"{base_path}.requirements.{device}"
+                if _is_identifier(device) and device not in devices:
+                    diagnostics.append(
+                        Diagnostic(
+                            "E200",
+                            path,
+                            "control device reference does not resolve",
+                            source,
+                        )
+                    )
+                elif (
+                    _is_identifier(device)
+                    and _is_mapping(devices.get(device))
+                    and position not in devices[device].get("positions", [])
+                ):
+                    diagnostics.append(
+                        Diagnostic(
+                            "E202",
+                            path,
+                            "control device position is not declared",
+                            source,
+                        )
+                    )
+        trigger = declaration.get("trigger")
+        if not _is_mapping(trigger):
+            continue
+        kind = trigger.get("kind")
+        target_id = trigger.get("id")
+        if kind == "track-section":
+            _validate_rule_movement_trigger(
+                base_path, trigger, sections, diagnostics, source
+            )
+        elif kind == "connection":
+            _validate_rule_movement_trigger(
+                base_path, trigger, connections, diagnostics, source
+            )
+        elif kind == "junction-passage" and (
+            _is_identifier(target_id) and target_id not in passages
+        ):
+            diagnostics.append(
+                Diagnostic(
+                    "E200",
+                    f"{base_path}.trigger.id",
+                    "junction passage reference does not resolve",
+                    source,
+                )
+            )
+        elif kind == "route-definition" and (
+            _is_identifier(target_id) and target_id not in routes
+        ):
+            diagnostics.append(
+                Diagnostic(
+                    "E200",
+                    f"{base_path}.trigger.id",
+                    "route definition reference does not resolve",
+                    source,
+                )
+            )
+        elif kind == "route-boundary":
+            route = trigger.get("route")
+            boundary = trigger.get("boundary")
+            if not _is_identifier(route) or route not in routes:
+                diagnostics.append(
+                    Diagnostic(
+                        "E200",
+                        f"{base_path}.trigger.route",
+                        "route definition reference does not resolve",
+                        source,
+                    )
+                )
+            if boundary not in {"entry", "exit"}:
+                diagnostics.append(
+                    Diagnostic(
+                        "E114",
+                        f"{base_path}.trigger.boundary",
+                        "expected 'entry' or 'exit'",
+                        source,
+                    )
+                )
+
+
+def _validate_rule_movement_trigger(
+    base_path: str,
+    trigger: Mapping[str, object],
+    collection: Mapping[str, object],
+    diagnostics: list[Diagnostic],
+    source: Path | None,
+) -> None:
+    target_id = trigger.get("id")
+    if not _is_identifier(target_id) or target_id not in collection:
+        diagnostics.append(
+            Diagnostic(
+                "E200",
+                f"{base_path}.trigger.id",
+                "trigger reference does not resolve",
+                source,
+            )
+        )
+        return
+    declaration = collection[target_id]
+    if not _is_mapping(declaration):
+        return
+    movement = {"from": trigger.get("from"), "to": trigger.get("to")}
+    if movement not in declaration.get("movements", []):
+        diagnostics.append(
+            Diagnostic(
+                "E200",
+                f"{base_path}.trigger",
+                "trigger movement does not resolve",
+                source,
+            )
+        )
+
+
+def _build_topology(data: Mapping[str, object], revision: str) -> Topology:
     sections = {
         TrackSectionId(identifier): TrackSection(
             TrackSectionId(identifier),
@@ -858,12 +1347,62 @@ def _build_topology(data: Mapping[str, object]) -> Topology:
         for identifier, declaration in _collection(data, "junction-passages").items()
         if _is_mapping(declaration)
     }
+    occupancy_zones = {
+        OccupancyZoneId(identifier): OccupancyZone(
+            OccupancyZoneId(identifier),
+            tuple(
+                OccupancyCoverage(
+                    _to_physical_resource(item["resource"]),
+                    OccupancyExtent(item["extent"]),
+                )
+                for item in declaration["coverage"]
+            ),
+        )
+        for identifier, declaration in _collection(data, "occupancy-zones").items()
+        if _is_mapping(declaration)
+    }
+    protection_zones = {
+        ProtectionZoneId(identifier): ProtectionZone(ProtectionZoneId(identifier))
+        for identifier, declaration in _collection(data, "protection-zones").items()
+        if _is_mapping(declaration)
+    }
+    protection_rules = {
+        identifier: ProtectionRule(
+            identifier,
+            MappingProxyType(cast(dict[str, str], declaration["trigger"])),
+            tuple(
+                ProtectionZoneId(_parse_protection_zone_reference(claim) or "")
+                for claim in declaration.get("claims", [])
+            ),
+            tuple(
+                DeviceRequirement(ControlDeviceId(device), DevicePositionId(position))
+                for device, position in declaration.get("requirements", {}).items()
+            ),
+        )
+        for identifier, declaration in _collection(data, "protection-rules").items()
+        if _is_mapping(declaration)
+    }
+    routes = {
+        RouteDefinitionId(identifier): RouteDefinition(
+            RouteDefinitionId(identifier),
+            _to_port_reference(declaration["entry"]),
+            _to_port_reference(declaration["exit"]),
+            tuple(declaration.get("via", [])),
+        )
+        for identifier, declaration in _collection(data, "route-definitions").items()
+        if _is_mapping(declaration)
+    }
     return Topology(
         MappingProxyType(sections),
         MappingProxyType(junctions),
         MappingProxyType(devices),
         MappingProxyType(connections),
         MappingProxyType(passages),
+        MappingProxyType(occupancy_zones),
+        MappingProxyType(protection_zones),
+        MappingProxyType(protection_rules),
+        MappingProxyType(routes),
+        revision,
     )
 
 
@@ -872,3 +1411,10 @@ def _to_port_reference(value: str) -> PortReference:
     if kind == "track-section":
         return TrackSectionPort(TrackSectionId(owner), PortId(port))
     return JunctionPort(JunctionId(owner), PortId(port))
+
+
+def _to_physical_resource(value: str) -> TrackSectionResource | JunctionResource:
+    kind, identifier = _parse_physical_resource_reference(value) or ("", "")
+    if kind == "track-section":
+        return TrackSectionResource(TrackSectionId(identifier))
+    return JunctionResource(JunctionId(identifier))

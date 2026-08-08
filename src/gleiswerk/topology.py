@@ -85,6 +85,20 @@ PhysicalResource = TrackSectionResource | JunctionResource
 """A claimable resource traversed by a path, never a directed path element."""
 
 
+@dataclass(frozen=True, slots=True)
+class ProtectionZoneResource:
+    """A claimable protection resource that need not occur in a wheel path."""
+
+    id: ProtectionZoneId
+
+    def __post_init__(self) -> None:
+        _require_identifier(self.id, "protection zone ID")
+
+
+ClaimResource = PhysicalResource | ProtectionZoneResource
+"""A physical or declared protection resource held by a route plan."""
+
+
 class OccupancyExtent(StrEnum):
     """How an occupancy observation overlaps a physical resource."""
 
@@ -312,6 +326,66 @@ class RouteDefinition:
     entry: PortReference
     exit: PortReference
     via: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class TrackSectionPathElement:
+    """One directed traversal of a Track Section in a compiled route."""
+
+    id: TrackSectionId
+    from_port: PortId
+    to_port: PortId
+
+
+@dataclass(frozen=True, slots=True)
+class ConnectionPathElement:
+    """One directed traversal of a non-claimable fixed connection."""
+
+    id: ConnectionId
+    from_port: PortReference
+    to_port: PortReference
+
+
+@dataclass(frozen=True, slots=True)
+class JunctionPassagePathElement:
+    """One declared directed Junction Passage in a compiled route."""
+
+    id: JunctionPassageId
+
+
+PathElement = (
+    TrackSectionPathElement | ConnectionPathElement | JunctionPassagePathElement
+)
+"""A directed element in the complete ordered path of a Route Plan."""
+
+
+@dataclass(frozen=True, slots=True)
+class ClaimContribution:
+    """The path element or rule that made a claim necessary."""
+
+    source: str
+
+
+@dataclass(frozen=True, slots=True)
+class RequirementContribution:
+    """The path element or rule that made a device position necessary."""
+
+    source: str
+
+
+@dataclass(frozen=True, slots=True)
+class RoutePlan:
+    """An immutable, resource-complete compilation of one Route Definition."""
+
+    route_id: RouteDefinitionId
+    topology_revision: str
+    path: tuple[PathElement, ...]
+    claims: tuple[ClaimResource, ...]
+    requirements: tuple[DeviceRequirement, ...]
+    claim_provenance: Mapping[ClaimResource, tuple[ClaimContribution, ...]]
+    requirement_provenance: Mapping[
+        ControlDeviceId, tuple[RequirementContribution, ...]
+    ]
 
 
 @dataclass(frozen=True, slots=True)

@@ -36,6 +36,8 @@ from gleiswerk.topology import (
     ProtectionRule,
     ProtectionZone,
     ProtectionZoneId,
+    RouteDefinition,
+    RouteDefinitionId,
     Topology,
     TrackSection,
     TrackSectionId,
@@ -55,6 +57,7 @@ _TOP_LEVEL_FIELDS = {
     "occupancy-zones",
     "protection-zones",
     "protection-rules",
+    "route-definitions",
 }
 
 
@@ -145,6 +148,7 @@ def validate_topology_data(
     occupancy_zones = _collection(data, "occupancy-zones")
     protection_zones = _collection(data, "protection-zones")
     protection_rules = _collection(data, "protection-rules")
+    routes = _collection(data, "route-definitions")
     _validate_sections(sections, diagnostics, source)
     _validate_junctions(junctions, diagnostics, source)
     _validate_devices(devices, diagnostics, source)
@@ -153,6 +157,7 @@ def validate_topology_data(
     _validate_occupancy_zones(occupancy_zones, diagnostics, source)
     _validate_protection_zones(protection_zones, diagnostics, source)
     _validate_protection_rules(protection_rules, diagnostics, source)
+    _validate_route_definitions(routes, diagnostics, source)
     _validate_local_port_references(sections, diagnostics, source, "track-sections")
     _validate_local_port_references(junctions, diagnostics, source, "junctions")
     _validate_references(
@@ -164,6 +169,7 @@ def validate_topology_data(
         occupancy_zones,
         protection_zones,
         protection_rules,
+        routes,
         diagnostics,
         source,
     )
@@ -502,6 +508,8 @@ def _validate_protection_rules(
             "track-section",
             "connection",
             "junction-passage",
+            "route-boundary",
+            "route-definition",
         }:
             diagnostics.append(
                 Diagnostic(
@@ -547,6 +555,53 @@ def _validate_protection_rules(
             diagnostics.append(
                 Diagnostic("E301", path, "protection rule has no contribution", source)
             )
+
+
+def _validate_route_definitions(
+    items: Mapping[str, object], diagnostics: list[Diagnostic], source: Path | None
+) -> None:
+    for identifier in sorted(items):
+        path = f"route-definitions.{identifier}"
+        declaration = items[identifier]
+        if not _is_identifier(identifier):
+            diagnostics.append(
+                Diagnostic("E110", path, "invalid route definition ID", source)
+            )
+            continue
+        if not _is_mapping(declaration):
+            diagnostics.append(Diagnostic("E102", path, "expected a mapping", source))
+            continue
+        _unknown_fields(
+            declaration, {"entry", "exit", "via"}, path, diagnostics, source
+        )
+        for field in ("entry", "exit"):
+            value = declaration.get(field)
+            if value is None:
+                diagnostics.append(
+                    Diagnostic("E101", f"{path}.{field}", "field is required", source)
+                )
+            elif _parse_port_reference(value) is None:
+                diagnostics.append(
+                    Diagnostic(
+                        "E110", f"{path}.{field}", "invalid port reference", source
+                    )
+                )
+        via = declaration.get("via", [])
+        if not _is_list(via):
+            diagnostics.append(
+                Diagnostic("E102", f"{path}.via", "expected an array", source)
+            )
+        elif any(not _parse_path_constraint(item) for item in via):
+            for index, item in enumerate(via):
+                if not _parse_path_constraint(item):
+                    diagnostics.append(
+                        Diagnostic(
+                            "E110",
+                            f"{path}.via[{index}]",
+                            "invalid path constraint",
+                            source,
+                        )
+                    )
 
 
 def _unknown_fields(
@@ -779,6 +834,19 @@ def _parse_protection_zone_reference(value: object) -> str | None:
     return parts[1]
 
 
+def _parse_path_constraint(value: object) -> tuple[str, str] | None:
+    if not isinstance(value, str):
+        return None
+    parts = value.split(":")
+    if len(parts) != 2 or parts[0] not in {
+        "track-section",
+        "connection",
+        "junction-passage",
+    }:
+        return None
+    return (parts[0], parts[1]) if _is_identifier(parts[1]) else None
+
+
 def _validate_references(
     sections: Mapping[str, object],
     junctions: Mapping[str, object],
@@ -788,6 +856,7 @@ def _validate_references(
     occupancy_zones: Mapping[str, object],
     protection_zones: Mapping[str, object],
     protection_rules: Mapping[str, object],
+    routes: Mapping[str, object],
     diagnostics: list[Diagnostic],
     source: Path | None,
 ) -> None:
@@ -879,6 +948,7 @@ def _validate_references(
         passages,
         devices,
         protection_zones,
+        routes,
         diagnostics,
         source,
     )
@@ -1069,6 +1139,7 @@ def _validate_protection_rule_references(
     passages: Mapping[str, object],
     devices: Mapping[str, object],
     protection_zones: Mapping[str, object],
+    routes: Mapping[str, object],
     diagnostics: list[Diagnostic],
     source: Path | None,
 ) -> None:
@@ -1149,6 +1220,38 @@ def _validate_protection_rule_references(
                     source,
                 )
             )
+        elif kind == "route-definition" and (
+            _is_identifier(target_id) and target_id not in routes
+        ):
+            diagnostics.append(
+                Diagnostic(
+                    "E200",
+                    f"{base_path}.trigger.id",
+                    "route definition reference does not resolve",
+                    source,
+                )
+            )
+        elif kind == "route-boundary":
+            route = trigger.get("route")
+            boundary = trigger.get("boundary")
+            if not _is_identifier(route) or route not in routes:
+                diagnostics.append(
+                    Diagnostic(
+                        "E200",
+                        f"{base_path}.trigger.route",
+                        "route definition reference does not resolve",
+                        source,
+                    )
+                )
+            if boundary not in {"entry", "exit"}:
+                diagnostics.append(
+                    Diagnostic(
+                        "E114",
+                        f"{base_path}.trigger.boundary",
+                        "expected 'entry' or 'exit'",
+                        source,
+                    )
+                )
 
 
 def _validate_rule_movement_trigger(
@@ -1279,6 +1382,16 @@ def _build_topology(data: Mapping[str, object], revision: str) -> Topology:
         for identifier, declaration in _collection(data, "protection-rules").items()
         if _is_mapping(declaration)
     }
+    routes = {
+        RouteDefinitionId(identifier): RouteDefinition(
+            RouteDefinitionId(identifier),
+            _to_port_reference(declaration["entry"]),
+            _to_port_reference(declaration["exit"]),
+            tuple(declaration.get("via", [])),
+        )
+        for identifier, declaration in _collection(data, "route-definitions").items()
+        if _is_mapping(declaration)
+    }
     return Topology(
         MappingProxyType(sections),
         MappingProxyType(junctions),
@@ -1288,6 +1401,7 @@ def _build_topology(data: Mapping[str, object], revision: str) -> Topology:
         MappingProxyType(occupancy_zones),
         MappingProxyType(protection_zones),
         MappingProxyType(protection_rules),
+        MappingProxyType(routes),
         revision,
     )
 

@@ -1,9 +1,10 @@
-# pyright: reportMissingImports=false, reportUnknownMemberType=false
+# pyright: reportMissingImports=false, reportMissingModuleSource=false, reportUnknownMemberType=false, reportUntypedFunctionDecorator=false
 """Tests for revision-matched Installation Binding validation."""
 
 from pathlib import Path
 
 import pytest
+import yaml
 
 from gleiswerk.installation_config import (
     load_installation_binding,
@@ -24,6 +25,7 @@ track-sections:
     terminal-ports: [west, east]
     movements: [{from: west, to: east}]
 """
+FIXTURE_DIRECTORY = Path(__file__).parent / "fixtures" / "installation_bindings"
 
 
 def test_loads_complete_revision_matched_installation_binding(tmp_path: Path) -> None:
@@ -131,3 +133,17 @@ def test_binding_rejects_stale_missing_unknown_and_conflicting_channels(
         binding_path = tmp_path / "invalid.yaml"
         binding_path.write_text("topology-revision: sha256:stale\n", encoding="utf-8")
         load_installation_binding(binding_path, topology)
+
+
+@pytest.mark.parametrize("fixture", sorted(FIXTURE_DIRECTORY.glob("*.yaml")))
+def test_installation_binding_fixtures_produce_diagnostics(
+    fixture: Path, tmp_path: Path
+) -> None:
+    layout_path = tmp_path / "layout.yaml"
+    layout_path.write_text(LAYOUT, encoding="utf-8")
+
+    diagnostics = validate_installation_binding_data(
+        yaml.safe_load(fixture.read_text(encoding="utf-8")), load_topology(layout_path)
+    )
+
+    assert diagnostics

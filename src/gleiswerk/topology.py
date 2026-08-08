@@ -16,6 +16,7 @@ JunctionPassageId = NewType("JunctionPassageId", str)
 OccupancyZoneId = NewType("OccupancyZoneId", str)
 PortId = NewType("PortId", str)
 ProtectionZoneId = NewType("ProtectionZoneId", str)
+RouteDefinitionId = NewType("RouteDefinitionId", str)
 TrackSectionId = NewType("TrackSectionId", str)
 
 
@@ -304,6 +305,16 @@ class ProtectionRule:
 
 
 @dataclass(frozen=True, slots=True)
+class RouteDefinition:
+    """Declared route boundaries and ordered constraints before compilation."""
+
+    id: RouteDefinitionId
+    entry: PortReference
+    exit: PortReference
+    via: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class ControlDeviceBinding:
     """One command channel and declared position evidence for a Control Device."""
 
@@ -358,4 +369,5 @@ class Topology:
     occupancy_zones: Mapping[OccupancyZoneId, OccupancyZone]
     protection_zones: Mapping[ProtectionZoneId, ProtectionZone]
     protection_rules: Mapping[str, ProtectionRule]
+    route_definitions: Mapping[RouteDefinitionId, RouteDefinition]
     revision: str

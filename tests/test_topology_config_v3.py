@@ -213,3 +213,32 @@ def test_occupancy_and_protection_validation_fails_closed_at_the_boundary() -> N
         ("E200", "protection-rules.incomplete.requirements.missing-device"),
         ("E200", "protection-rules.incomplete.trigger.id"),
     ]
+
+
+def test_protection_rules_accept_route_boundary_and_definition_triggers() -> None:
+    data: object = {
+        "schema-version": 3,
+        "route-definitions": {
+            "through": {
+                "entry": "track-section:approach:west",
+                "exit": "track-section:platform:east",
+            }
+        },
+        "protection-zones": {"overlap": {}},
+        "protection-rules": {
+            "entry-overlap": {
+                "trigger": {
+                    "kind": "route-boundary",
+                    "route": "through",
+                    "boundary": "entry",
+                },
+                "claims": ["protection-zone:overlap"],
+            },
+            "whole-route": {
+                "trigger": {"kind": "route-definition", "id": "through"},
+                "claims": ["protection-zone:overlap"],
+            },
+        },
+    }
+
+    assert validate_topology_data(data) == ()

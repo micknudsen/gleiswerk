@@ -1,0 +1,4 @@
+topology-revision: sha256:stale
+control-devices:
+  unknown: {command-channel: dcc-99, position-evidence: {kind: unknown}}
+occupancy-zones: {}

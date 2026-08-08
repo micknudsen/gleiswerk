@@ -7,6 +7,8 @@ from pathlib import Path
 
 import yaml  # pyright: ignore[reportMissingModuleSource]
 
+from gleiswerk.topology_config import TopologyConfigurationError, load_topology
+
 FIXTURE_DIRECTORY = Path(__file__).parent / "fixtures" / "schema_v3"
 MANIFEST = FIXTURE_DIRECTORY / "manifest.yaml"
 
@@ -68,3 +70,25 @@ def test_schema_v3_fixtures_do_not_use_display_names() -> None:
         if fixture == MANIFEST:
             continue
         assert "display-name" not in fixture.read_text(encoding="utf-8")
+
+
+def test_documented_reference_layouts_load() -> None:
+    """Keep the layouts named in the authoring guide executable."""
+    for fixture in ("valid-direct.yaml", "valid-station.yaml"):
+        topology = load_topology(FIXTURE_DIRECTORY / fixture)
+
+        assert topology.revision.startswith("sha256:")
+
+
+def test_documented_invalid_layout_reports_the_stated_diagnostic() -> None:
+    """Keep the authoring guide's invalid example and diagnostic aligned."""
+    try:
+        load_topology(FIXTURE_DIRECTORY / "invalid-dangling-port.yaml")
+    except TopologyConfigurationError as error:
+        diagnostics = error.diagnostics
+    else:
+        raise AssertionError("the documented invalid layout unexpectedly loaded")
+
+    assert [(diagnostic.code, diagnostic.path) for diagnostic in diagnostics] == [
+        ("E204", "track-sections.approach.ports[1]")
+    ]

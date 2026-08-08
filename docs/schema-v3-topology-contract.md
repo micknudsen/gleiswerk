@@ -442,7 +442,9 @@ most specific cause.
 The machine-readable manifest at
 `tests/fixtures/schema_v3/manifest.yaml` maps every fixture to its expected
 validation, compilation, compatibility, or runtime-safety outcome. The
-fixtures are contract inputs, not currently executable layouts.
+fixtures are contract inputs. The test suite loads their valid layouts,
+asserts validation diagnostics for invalid layouts, and compiles the routes
+whose manifest cases require compilation.
 
 | ADR 0010 scenario | Contract fixture expectation |
 | --- | --- |
@@ -460,31 +462,7 @@ fixtures are contract inputs, not currently executable layouts.
 | 12 | Startup and lost-feedback expectations remain unknown and deny movement authority. |
 | 13 | A non-path Protection Zone is present in the compiled claim set. |
 
-## Migration from schema version 2
+## Supported input
 
-Migration is explicit and offline. The schema-v3 reader accepts only YAML
-version 3; it does not reinterpret, merge, or automatically upgrade
-schema-version-2 TOML input. The version-2 file remains unchanged until its
-author produces and reviews a complete YAML version-3 replacement.
-
-The following mechanical transformations are safe only after the author has
-made the listed physical decisions:
-
-| Version-2 declaration | Version-3 treatment | Why it is not automatic |
-| --- | --- | --- |
-| `blocks.<id>` | One or more Track Sections, Occupancy Zones, or both. | A Block overloads physical track, detection, operation, and reservation meanings. |
-| Block `endpoints` | Candidate local Port names. | The old endpoint pair does not prove physical section boundaries, terminal status, or detector coverage. |
-| `traversals.<id>` | One or more Connections and Junction Passages, with every intervening Track Section explicit. | A traversal can hide arbitrary physical resources and may duplicate the reverse direction under another ID. |
-| Traversal `turnouts` | Control Device requirements on Junction Passages or Protection Rules. | The old field does not identify the physical Junction footprint or non-path flank requirement. |
-| Route `traversals` | Route Definition `entry`, `exit`, and only the `via` constraints needed for uniqueness. | The old ordered list is neither a complete path nor proof that all claims were named. |
-| No version-2 equivalent | Occupancy coverage extents. | Detector boundaries and complete versus partial overlap require installation knowledge. |
-| No version-2 equivalent | Protection Zones and rules. | Fouling, flank, crossing, and overlap areas require physical commissioning knowledge. |
-| No version-2 equivalent | Terminal Ports and explicit Track Section and Connection movements. | Layout boundaries and permitted travel cannot be inferred from missing traversals. |
-| TOML document syntax | One strict YAML 1.2 document. | The syntax conversion is mechanical only after every semantic migration decision is complete. |
-
-The migration review must therefore identify every physical rail span and
-Junction footprint, place safe resource boundaries, declare direct adjacency,
-declare every permitted movement explicitly, map detector coverage, add
-protection contributions, translate the reviewed data to YAML, and compare each
-compiled Route Plan with the real layout. No tool may claim a complete
-migration from schema version 2 without those human decisions.
+The reader accepts only schema-version-3 YAML layouts. Earlier schemas are
+historical records and are not supported input formats.

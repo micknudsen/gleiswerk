@@ -2,8 +2,9 @@
 
 Status: implementation contract. This document defines the stable, structured
 result of static compatibility analysis for validated schema-v3 `RoutePlan`
-objects. It is the contract for the future controller-independent core API and
-its callers; it does not implement that API or define a CLI command.
+objects. The controller-independent core API is
+`gleiswerk.route_compatibility.analyze_route_plans`; this contract defines its
+stable result shape. It does not define a CLI command.
 
 ## Boundary and inputs
 

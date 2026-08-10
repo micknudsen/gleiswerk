@@ -50,6 +50,56 @@ def test_manifest_covers_every_fixture_and_adr_0010_scenario() -> None:
             assert re.fullmatch(r"E[0-9]{3}", case["diagnostic"])
 
 
+def test_compatibility_expected_results_follow_the_stable_contract() -> None:
+    manifest = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))
+    compatibility_cases = [
+        case for case in manifest["cases"] if case["phase"] == "compatibility"
+    ]
+
+    assert compatibility_cases
+    for case in compatibility_cases:
+        result = case["expected-result"]
+        route_pair = result["route-pair"]
+        assert route_pair == sorted(route_pair)
+        assert result["compatible"] is (not result["conflicts"])
+
+        conflict_keys: list[tuple[str, str, str]] = []
+        for conflict in result["conflicts"]:
+            provenance = conflict["provenance"]
+            assert list(provenance) == route_pair
+            assert all(
+                sources == sorted(sources) and sources
+                for sources in provenance.values()
+            )
+            if conflict["kind"] == "overlapping-exclusive-claim":
+                assert set(conflict) == {"kind", "resource", "provenance"}
+                resource_kind, resource_id = conflict["resource"].split(":", 1)
+                conflict_keys.append(
+                    (
+                        str(conflict["kind"]),
+                        resource_kind,
+                        resource_id,
+                    )
+                )
+            else:
+                assert conflict["kind"] == "incompatible-control-device-requirement"
+                assert set(conflict) == {
+                    "kind",
+                    "control-device",
+                    "required-positions",
+                    "provenance",
+                }
+                assert list(conflict["required-positions"]) == route_pair
+                conflict_keys.append(
+                    (
+                        str(conflict["kind"]),
+                        str(conflict["control-device"]),
+                        "",
+                    )
+                )
+        assert conflict_keys == sorted(conflict_keys)
+
+
 def test_track_sections_and_connections_name_each_allowed_movement() -> None:
     for fixture in sorted(FIXTURE_DIRECTORY.glob("*.yaml")):
         if fixture == MANIFEST:

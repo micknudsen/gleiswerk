@@ -361,8 +361,9 @@ The fixtures record only ADR 0010's closed baseline expectations. Two plans
 conflict when exclusive claim sets intersect or they require different
 positions of one Control Device. The same device position does not cancel a
 physical conflict. Plans with disjoint claims and compatible requirements are
-compatible. The stable structured compatibility result is intentionally left
-to its later contract; this document does not define its API or CLI form.
+compatible. The exact, stable structured result is defined in the
+[RoutePlan compatibility contract](routeplan-compatibility-contract.md). This
+document does not define a compatibility API or CLI form.
 
 ## Deterministic diagnostics
 

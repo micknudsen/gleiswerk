@@ -23,6 +23,7 @@ nav:
   - Architecture: architecture.md
   - Layout configuration: layout-configuration.md
   - Schema-v3 topology contract: schema-v3-topology-contract.md
+  - RoutePlan compatibility contract: routeplan-compatibility-contract.md
   - Release notes:
       - Guide: releases/README.md
       - v0.0.1: releases/v0.0.1.md

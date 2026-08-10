@@ -150,6 +150,12 @@ cases:
   routes:
   - west-to-east-via-platform-1
   - depot-only
+  expected-result:
+    route-pair:
+    - depot-only
+    - west-to-east-via-platform-1
+    compatible: true
+    conflicts: []
   expectation: The two plans have disjoint claims and no incompatible requirements.
 - id: different-device-positions
   fixture: valid-station.yaml
@@ -162,6 +168,22 @@ cases:
   - west-to-platform-2
   expected-conflicts:
   - control-device:west-throat-turnout:normal:reverse
+  expected-result:
+    route-pair:
+    - west-to-platform-1
+    - west-to-platform-2
+    compatible: false
+    conflicts:
+    - kind: incompatible-control-device-requirement
+      control-device: west-throat-turnout
+      required-positions:
+        west-to-platform-1: normal
+        west-to-platform-2: reverse
+      provenance:
+        west-to-platform-1:
+        - junction-passage:west-to-platform-1
+        west-to-platform-2:
+        - junction-passage:west-to-platform-2
   expectation: Different positions of west-throat-turnout conflict even though route exits
     differ.
 - id: same-device-position-shared-resources
@@ -178,6 +200,33 @@ cases:
   - junction:west-throat
   - track-section:platform-1
   - track-section:west-entry
+  expected-result:
+    route-pair:
+    - west-to-east-via-platform-1
+    - west-to-platform-1
+    compatible: false
+    conflicts:
+    - kind: overlapping-exclusive-claim
+      resource: junction:west-throat
+      provenance:
+        west-to-east-via-platform-1:
+        - junction-passage:west-to-platform-1
+        west-to-platform-1:
+        - junction-passage:west-to-platform-1
+    - kind: overlapping-exclusive-claim
+      resource: track-section:platform-1
+      provenance:
+        west-to-east-via-platform-1:
+        - track-section:platform-1
+        west-to-platform-1:
+        - track-section:platform-1
+    - kind: overlapping-exclusive-claim
+      resource: track-section:west-entry
+      provenance:
+        west-to-east-via-platform-1:
+        - track-section:west-entry
+        west-to-platform-1:
+        - track-section:west-entry
   expectation: Equal device requirements do not remove common-throat and shared-track
     claims.
 - id: crossing-and-protection
@@ -192,6 +241,26 @@ cases:
   expected-conflicts:
   - junction:diamond
   - protection-zone:crossing-fouling
+  expected-result:
+    route-pair:
+    - north-to-south
+    - west-to-east
+    compatible: false
+    conflicts:
+    - kind: overlapping-exclusive-claim
+      resource: junction:diamond
+      provenance:
+        north-to-south:
+        - junction-passage:north-to-south
+        west-to-east:
+        - junction-passage:west-to-east
+    - kind: overlapping-exclusive-claim
+      resource: protection-zone:crossing-fouling
+      provenance:
+        north-to-south:
+        - protection-rule:north-south-fouling
+        west-to-east:
+        - protection-rule:east-west-fouling
   expectation: Crossing and fouling conflicts are shared declared claims with rule
     provenance.
 - id: non-path-protection

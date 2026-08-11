@@ -91,7 +91,7 @@ track-sections:
     )
 
 
-def test_layout_compatibility_reports_a_stable_structured_result() -> None:
+def test_documented_conflicting_reference_layout_reports_a_stable_result() -> None:
     layout = Path("tests/fixtures/schema_v3/valid-direct.yaml")
 
     result = run_module("layout", "compatibility", str(layout))
@@ -120,7 +120,7 @@ def test_layout_compatibility_reports_a_stable_structured_result() -> None:
     }
 
 
-def test_layout_compatibility_reports_compatible_routes() -> None:
+def test_documented_compatible_reference_layout_reports_compatible_routes() -> None:
     layout = Path("tests/fixtures/schema_v3/valid-station.yaml")
 
     result = run_module("layout", "compatibility", str(layout))

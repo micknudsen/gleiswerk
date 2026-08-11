@@ -23,6 +23,7 @@ After installing the project in a development environment:
 gleiswerk --help
 gleiswerk --version
 gleiswerk layout validate layout.yaml
+gleiswerk layout compatibility layout.yaml
 ```
 
 The package can also be invoked as a Python module:

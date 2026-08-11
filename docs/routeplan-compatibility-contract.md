@@ -4,7 +4,8 @@ Status: implementation contract. This document defines the stable, structured
 result of static compatibility analysis for validated schema-v3 `RoutePlan`
 objects. The controller-independent core API is
 `gleiswerk.route_compatibility.analyze_route_plans`; this contract defines its
-stable result shape. It does not define a CLI command.
+stable result shape. `gleiswerk layout compatibility FILE` emits this shape as
+a YAML document after loading and compiling every Route Definition in `FILE`.
 
 ## Boundary and inputs
 

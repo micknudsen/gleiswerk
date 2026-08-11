@@ -16,9 +16,10 @@ plans with the same Route Definition ID is a caller error; it does not produce
 a compatible or conflicting result.
 
 Analysis is static: it compares declared exclusive claims and required Control
-Device positions. It neither reserves a claim, commands a device, establishes
-occupancy clearance, infers physical geometry, nor grants movement authority.
-Those decisions remain runtime safety concerns.
+Device positions. It does not infer physical geometry, prove live clearance,
+reserve resources, or authorize movement. It also does not command a device.
+Those decisions remain runtime safety concerns; a compatible result is an
+explanation of declared plans, not permission for a train to move.
 
 The closed baseline has exactly two conflict kinds:
 
@@ -30,6 +31,70 @@ The closed baseline has exactly two conflict kinds:
 Equal requirements for one Control Device are not a conflict. They also never
 remove an overlapping exclusive-claim conflict. No other fact can make two
 plans conflict in this contract; adding a conflict kind is a contract change.
+
+## CLI workflow
+
+Use the CLI after validating a schema-v3 layout. It compiles every Route
+Definition in the file and reports every unordered pair. The command is
+read-only and exits zero whether the report contains compatible or conflicting
+pairs; use the `compatible` field and `conflicts` list to interpret the
+report.
+
+The checked-in reference layouts provide runnable examples. From a development
+checkout, run:
+
+```console
+gleiswerk layout compatibility tests/fixtures/schema_v3/valid-station.yaml
+```
+
+The station report includes an explicitly compatible pair:
+
+```yaml
+route-pair: [depot-only, west-to-east-via-platform-1]
+compatible: true
+conflicts: []
+```
+
+`valid-direct.yaml` provides a minimal conflicting layout:
+
+```console
+gleiswerk layout compatibility tests/fixtures/schema_v3/valid-direct.yaml
+```
+
+It reports the shared `platform` Track Section and why each route claims it:
+
+```yaml
+route-pair: [direct-arrival, within-platform]
+compatible: false
+conflicts:
+  - kind: overlapping-exclusive-claim
+    resource: track-section:platform
+    provenance:
+      direct-arrival: [track-section:platform]
+      within-platform: [track-section:platform]
+```
+
+The automated CLI tests run both commands against these exact reference
+layouts. The full output also has a `topology-revision` value; it identifies
+the declared topology used to compile the compared plans.
+
+### Reading conflicts
+
+`overlapping-exclusive-claim` means both compiled plans declare the same
+exclusive Track Section, Junction, or Protection Zone. The `resource` names
+what they share, while `provenance` lists every path or protection rule that
+caused each plan to claim it.
+
+`incompatible-control-device-requirement` means both plans name the same
+Control Device but require different declared positions. Its
+`required-positions` mapping shows the disagreement, and `provenance` names
+the passages or rules that imposed those positions. Matching positions do not
+produce this conflict, but they do not make a shared resource safe to use.
+
+The result is deterministic: route pairs, conflicts, and every provenance list
+always have the canonical order described below. That makes reports suitable
+for review, regression tests, and repeatable tooling; it does not add any live
+railway-state knowledge.
 
 ## Result model
 

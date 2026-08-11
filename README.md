@@ -8,9 +8,10 @@ automation system. It is being designed around a Märklin H0 reference layout
 while keeping its automation core independent of any particular command
 station.
 
-Schema version 3 provides validated, resource-complete logical topology and
-compiled route plans. It remains descriptive only: Gleiswerk does not yet
-control railway hardware, reserve resources, or authorize train movements.
+Schema version 3 provides validated, resource-complete logical topology,
+compiled route plans, and explainable static compatibility analysis. It remains
+descriptive only: Gleiswerk does not yet control railway hardware, reserve
+resources, or authorize train movements.
 
 See the [layout configuration guide](docs/layout-configuration.md) for the
 schema-v3 authoring model and validated reference layouts.

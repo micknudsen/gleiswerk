@@ -5,6 +5,8 @@ import sys
 from importlib.metadata import version
 from pathlib import Path
 
+import yaml
+
 
 def run_module(*arguments: str) -> subprocess.CompletedProcess[str]:
     """Run the installed Gleiswerk module in a separate process."""
@@ -86,4 +88,61 @@ track-sections:
     assert result.stderr == (
         f"ERROR E204 {layout}:track-sections.entry.ports[1]:\n"
         "  nonterminal port has no connection\n"
+    )
+
+
+def test_layout_compatibility_reports_a_stable_structured_result() -> None:
+    layout = Path("tests/fixtures/schema_v3/valid-direct.yaml")
+
+    result = run_module("layout", "compatibility", str(layout))
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+    assert yaml.safe_load(result.stdout) == {
+        "topology-revision": "sha256:"
+        "d3142628cbd9500f0056c08d3eaad8cdb5ffcacaf0be818f277b4533e23e0dba",
+        "pairs": [
+            {
+                "route-pair": ["direct-arrival", "within-platform"],
+                "compatible": False,
+                "conflicts": [
+                    {
+                        "kind": "overlapping-exclusive-claim",
+                        "resource": "track-section:platform",
+                        "provenance": {
+                            "direct-arrival": ["track-section:platform"],
+                            "within-platform": ["track-section:platform"],
+                        },
+                    }
+                ],
+            }
+        ],
+    }
+
+
+def test_layout_compatibility_reports_compatible_routes() -> None:
+    layout = Path("tests/fixtures/schema_v3/valid-station.yaml")
+
+    result = run_module("layout", "compatibility", str(layout))
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+    report = yaml.safe_load(result.stdout)
+    assert {
+        "route-pair": ["depot-only", "west-to-east-via-platform-1"],
+        "compatible": True,
+        "conflicts": [],
+    } in report["pairs"]
+
+
+def test_layout_compatibility_reports_topology_diagnostics(tmp_path: Path) -> None:
+    layout = tmp_path / "invalid.yaml"
+    layout.write_text("schema-version: 2\n", encoding="utf-8")
+
+    result = run_module("layout", "compatibility", str(layout))
+
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert result.stderr == (
+        f"ERROR E103 {layout}:schema-version:\n  unsupported schema version 2\n"
     )

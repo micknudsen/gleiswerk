@@ -32,6 +32,38 @@ It prints ordered diagnostics to standard error and exits one otherwise. For
 example, the [dangling-port example](https://github.com/micknudsen/gleiswerk/blob/master/tests/fixtures/schema_v3/invalid-dangling-port.yaml)
 is deliberately invalid and is asserted to report `E204` by the test suite.
 
+## Inspect route compatibility
+
+For a valid layout with at least two Route Definitions, inspect every unordered
+pair of compiled RoutePlans without changing the layout or any railway state:
+
+```console
+gleiswerk layout compatibility layout.yaml
+```
+
+The command writes one deterministic YAML document to standard output and exits
+zero for both compatible and conflicting layouts. Its shape is the
+[RoutePlan compatibility contract](routeplan-compatibility-contract.md):
+
+```yaml
+topology-revision: sha256:<hex>
+pairs:
+  - route-pair: [route-a, route-b]
+    compatible: false
+    conflicts:
+      - kind: overlapping-exclusive-claim
+        resource: track-section:shared-section
+        provenance:
+          route-a: [track-section:shared-section]
+          route-b: [track-section:shared-section]
+```
+
+Pairs, conflicts, and provenance entries follow the contract's canonical
+ordering. Invalid layout configuration, route-compilation failure, or fewer
+than two Route Definitions produces a diagnostic on standard error and exits
+one. The command is read-only: it does not reserve resources, command devices,
+or authorize movement.
+
 ## Topology vocabulary
 
 Every collection is keyed by a stable lowercase kebab-case ID:

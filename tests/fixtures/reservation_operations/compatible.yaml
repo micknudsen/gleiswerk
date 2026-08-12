@@ -1,0 +1,13 @@
+operations:
+  - operation: acquire
+    owner: dispatcher-a
+    route: depot-only
+  - operation: acquire
+    owner: dispatcher-b
+    route: west-to-east-via-platform-1
+  - operation: release
+    owner: dispatcher-a
+    reservation: reservation-1
+  - operation: release
+    owner: dispatcher-b
+    reservation: reservation-2

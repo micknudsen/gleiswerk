@@ -1,0 +1,10 @@
+operations:
+  - operation: acquire
+    owner: dispatcher-a
+    route: direct-arrival
+  - operation: acquire
+    owner: dispatcher-b
+    route: within-platform
+  - operation: release
+    owner: dispatcher-a
+    reservation: reservation-1

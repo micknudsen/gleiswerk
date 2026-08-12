@@ -146,3 +146,58 @@ def test_layout_compatibility_reports_topology_diagnostics(tmp_path: Path) -> No
     assert result.stderr == (
         f"ERROR E103 {layout}:schema-version:\n  unsupported schema version 2\n"
     )
+
+
+def test_layout_reservations_evaluates_compatible_acquisition_and_release() -> None:
+    result = run_module(
+        "layout",
+        "reservations",
+        "tests/fixtures/schema_v3/valid-station.yaml",
+        "tests/fixtures/reservation_operations/compatible.yaml",
+    )
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+    report = yaml.safe_load(result.stdout)
+    assert [operation["outcome"] for operation in report["operations"]] == [
+        "acquired",
+        "acquired",
+        "released",
+        "released",
+    ]
+    assert all(operation["success"] for operation in report["operations"])
+    assert report["held-reservations"] == []
+
+
+def test_layout_reservations_reports_structured_incompatible_denial() -> None:
+    result = run_module(
+        "layout",
+        "reservations",
+        "tests/fixtures/schema_v3/valid-direct.yaml",
+        "tests/fixtures/reservation_operations/denied.yaml",
+    )
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+    report = yaml.safe_load(result.stdout)
+    denied = report["operations"][1]
+    assert denied == {
+        "operation": "acquire",
+        "owner": "dispatcher-b",
+        "route": "within-platform",
+        "success": False,
+        "outcome": "incompatible",
+        "denial": {
+            "kind": "incompatible",
+            "claim-conflicts": [
+                {
+                    "resource": "track-section:platform",
+                    "requested-provenance": ["track-section:platform"],
+                    "held-reservation": "reservation-1",
+                    "held-provenance": ["track-section:platform"],
+                }
+            ],
+            "device-constraint-conflicts": [],
+        },
+    }
+    assert report["held-reservations"] == []

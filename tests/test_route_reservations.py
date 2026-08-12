@@ -161,7 +161,7 @@ def test_manager_acquires_and_releases_a_plan_as_one_atomic_reservation() -> Non
         load_topology(FIXTURES / "valid-station.yaml"),
         RouteDefinitionId("west-to-platform-1"),
     )
-    manager = ReservationManager(plan.topology_revision)
+    manager = ReservationManager(load_topology(FIXTURES / "valid-station.yaml"))
     acquired = manager.acquire(
         AcquireReservationRequest(ReservationOwner("dispatcher"), plan)
     )
@@ -187,7 +187,7 @@ def test_manager_denies_overlapping_claims_without_changing_held_state() -> None
     conflicting_plan = compile_route(
         topology, RouteDefinitionId("west-to-east-via-platform-1")
     )
-    manager = ReservationManager(topology.revision)
+    manager = ReservationManager(topology)
     held = manager.acquire(
         AcquireReservationRequest(ReservationOwner("one"), held_plan)
     )
@@ -211,7 +211,7 @@ def test_manager_denies_overlapping_claims_without_changing_held_state() -> None
 
 def test_manager_allows_shared_device_values_but_denies_different_values() -> None:
     topology = load_topology(FIXTURES / "valid-station.yaml")
-    manager = ReservationManager(topology.revision)
+    manager = ReservationManager(topology)
     first = compile_route(topology, RouteDefinitionId("west-to-platform-1"))
     same_value = compile_route(topology, RouteDefinitionId("depot-only"))
     different_value = compile_route(topology, RouteDefinitionId("west-to-platform-2"))
@@ -242,7 +242,7 @@ def test_manager_allows_shared_device_values_but_denies_different_values() -> No
 def test_manager_rejects_invalid_and_stale_plans_without_changing_state() -> None:
     topology = load_topology(FIXTURES / "valid-station.yaml")
     plan = compile_route(topology, RouteDefinitionId("depot-only"))
-    manager = ReservationManager(topology.revision)
+    manager = ReservationManager(topology)
     stale = manager.acquire(
         AcquireReservationRequest(
             ReservationOwner("dispatcher"),
@@ -279,7 +279,7 @@ def test_manager_rejects_invalid_and_stale_plans_without_changing_state() -> Non
 
 def test_manager_release_is_owner_checked_and_not_found_is_idempotent() -> None:
     topology = load_topology(FIXTURES / "valid-station.yaml")
-    manager = ReservationManager(topology.revision)
+    manager = ReservationManager(topology)
     acquired = manager.acquire(
         AcquireReservationRequest(
             ReservationOwner("owner"),
@@ -303,23 +303,17 @@ def test_manager_release_is_owner_checked_and_not_found_is_idempotent() -> None:
     assert not_found.outcome == "not-found"
 
 
-def test_manager_rejects_acquisition_without_an_active_topology() -> None:
+def test_manager_is_bound_to_its_constructor_topology_revision() -> None:
     plan = compile_route(
         load_topology(FIXTURES / "valid-station.yaml"), RouteDefinitionId("depot-only")
     )
-    manager = ReservationManager()
+    topology = load_topology(FIXTURES / "valid-protection.yaml")
+    manager = ReservationManager(topology)
 
-    assert (
-        manager.acquire(
-            AcquireReservationRequest(ReservationOwner("dispatcher"), plan)
-        ).outcome
-        == "no-active-topology"
+    result = manager.acquire(
+        AcquireReservationRequest(ReservationOwner("dispatcher"), plan)
     )
-    assert manager.activate_topology(plan.topology_revision) is True
-    assert (
-        manager.acquire(
-            AcquireReservationRequest(ReservationOwner("dispatcher"), plan)
-        ).outcome
-        == "acquired"
-    )
-    assert manager.activate_topology("sha256:other") is False
+
+    assert result.outcome == "revision-mismatch"
+    assert manager.inspect().topology_revision == topology.revision
+    assert manager.inspect().reservations == ()

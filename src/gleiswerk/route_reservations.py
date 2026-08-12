@@ -1,9 +1,4 @@
-"""Immutable, controller-independent contracts for RoutePlan reservations.
-
-This module deliberately contains no reservation state or locking behavior.
-``ReservationManager`` and its atomic operations are specified by the next
-implementation increment; these values are its public input and result shape.
-"""
+"""Controller-independent contracts and atomic state for RoutePlan reservations."""
 
 from __future__ import annotations
 
@@ -21,6 +16,7 @@ from gleiswerk.topology import (
     JunctionResource,
     RouteDefinitionId,
     RoutePlan,
+    Topology,
     TrackSectionResource,
 )
 
@@ -131,13 +127,6 @@ class IncompatibleReservationDeviceConstraint:
 
 
 @dataclass(frozen=True, slots=True)
-class NoActiveTopology:
-    """The manager cannot accept plans until a topology revision is active."""
-
-    kind: Literal["no-active-topology"] = "no-active-topology"
-
-
-@dataclass(frozen=True, slots=True)
 class InvalidReservationPlan:
     """The supplied plan failed the manager's defensive plan validation."""
 
@@ -191,10 +180,7 @@ class IncompatibleReservation:
 
 
 AcquireDenialReason: TypeAlias = (
-    NoActiveTopology
-    | InvalidReservationPlan
-    | TopologyRevisionMismatch
-    | IncompatibleReservation
+    InvalidReservationPlan | TopologyRevisionMismatch | IncompatibleReservation
 )
 
 
@@ -207,7 +193,6 @@ class AcquireReservationResult:
         "invalid-plan",
         "revision-mismatch",
         "incompatible",
-        "no-active-topology",
     ]
     reservation: Reservation | None = None
     denial_reason: AcquireDenialReason | None = None
@@ -243,7 +228,7 @@ class ReleaseReservationResult:
 class ReservationInspection:
     """A read-only deterministic snapshot of one manager's held reservations."""
 
-    active_topology_revision: str | None
+    topology_revision: str
     reservations: tuple[Reservation, ...]
 
     def __post_init__(self) -> None:
@@ -255,15 +240,15 @@ class ReservationInspection:
 
 
 class ReservationManager:
-    """Atomically hold RoutePlan claims for one active topology revision.
+    """Atomically hold RoutePlan claims for one immutable topology.
 
     This manager is intentionally an in-memory, controller-independent core
     component. Acquiring a reservation neither commands a device nor permits a
     train to move.
     """
 
-    def __init__(self, active_topology_revision: str | None = None) -> None:
-        self._active_topology_revision = active_topology_revision
+    def __init__(self, topology: Topology) -> None:
+        self._topology_revision = topology.revision
         self._reservations: dict[ReservationId, Reservation] = {}
         self._next_reservation_number = 1
         self._lock = RLock()
@@ -272,19 +257,15 @@ class ReservationManager:
         """Atomically acquire every claim in a plan or leave state unchanged."""
 
         with self._lock:
-            if self._active_topology_revision is None:
-                return AcquireReservationResult(
-                    "no-active-topology", denial_reason=NoActiveTopology()
-                )
             if not _is_valid_plan(request.plan):
                 return AcquireReservationResult(
                     "invalid-plan", denial_reason=InvalidReservationPlan()
                 )
-            if request.plan.topology_revision != self._active_topology_revision:
+            if request.plan.topology_revision != self._topology_revision:
                 return AcquireReservationResult(
                     "revision-mismatch",
                     denial_reason=TopologyRevisionMismatch(
-                        self._active_topology_revision, request.plan.topology_revision
+                        self._topology_revision, request.plan.topology_revision
                     ),
                 )
 
@@ -320,25 +301,12 @@ class ReservationManager:
             )
 
     def inspect(self) -> ReservationInspection:
-        """Return an immutable snapshot of the active revision and held records."""
+        """Return an immutable snapshot of this topology and held records."""
 
         with self._lock:
             return ReservationInspection(
-                self._active_topology_revision, tuple(self._reservations.values())
+                self._topology_revision, tuple(self._reservations.values())
             )
-
-    def activate_topology(self, topology_revision: str | None) -> bool:
-        """Activate a revision only when no reservation is live.
-
-        ``False`` means the current active revision and all held claims were
-        preserved. ``None`` deactivates the manager once it is empty.
-        """
-
-        with self._lock:
-            if self._reservations:
-                return False
-            self._active_topology_revision = topology_revision
-            return True
 
     def _incompatibility_for(self, plan: RoutePlan) -> IncompatibleReservation | None:
         claim_conflicts: list[OverlappingReservationClaim] = []

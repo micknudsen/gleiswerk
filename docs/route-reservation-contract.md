@@ -65,6 +65,9 @@ ordered by Control Device ID; a held reservation ID breaks a remaining tie.
 Provenance maps use those same keys, and their source lists retain the
 compiler's order.
 
-The contract makes result ordering stable. The reservation manager defined by
-the subsequent implementation issue is responsible for enforcing the atomic
-state transition and for producing these values.
+The contract makes result ordering stable. `ReservationManager` performs the
+atomic in-memory state transition. Its `acquire`, `release`, and `inspect`
+methods take and return the values above. `activate_topology` changes the
+active revision only while inspection is empty; otherwise it returns `false`
+and preserves the complete live state. The manager is in-memory only and does
+not command devices, interpret observations, or authorize movement.

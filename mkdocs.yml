@@ -34,6 +34,7 @@ nav:
       - v0.0.4: releases/v0.0.4.md
       - v0.0.5: releases/v0.0.5.md
       - v0.0.6: releases/v0.0.6.md
+      - v0.0.7: releases/v0.0.7.md
   - Development: development.md
   - Decisions:
       - Overview: adr/README.md

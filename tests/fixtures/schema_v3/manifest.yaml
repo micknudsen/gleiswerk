@@ -2,8 +2,7 @@ manifest-version: 1
 cases:
 - id: direct-sections
   fixture: valid-direct.yaml
-  adr-0010-scenarios:
-  - 1
+  adr-0010-scenarios: [1]
   phase: compilation
   outcome: valid
   route: direct-arrival
@@ -20,15 +19,12 @@ cases:
     id: platform
     from: west
     to: east
-  expected-claims:
-  - track-section:approach
-  - track-section:platform
+  expected-claims: [track-section:approach, track-section:platform]
   expectation: The direct Connection proves continuity and contributes no Junction
     claim.
 - id: within-one-section
   fixture: valid-direct.yaml
-  adr-0010-scenarios:
-  - 10
+  adr-0010-scenarios: [10]
   phase: compilation
   outcome: valid
   route: within-platform
@@ -37,13 +33,11 @@ cases:
     id: platform
     from: west
     to: east
-  expected-claims:
-  - track-section:platform
+  expected-claims: [track-section:platform]
   expectation: Explicit boundaries within one Track Section still claim that section.
 - id: station-through-platform-1
   fixture: valid-station.yaml
-  adr-0010-scenarios:
-  - 2
+  adr-0010-scenarios: [2]
   phase: compilation
   outcome: valid
   route: west-to-east-via-platform-1
@@ -80,21 +74,13 @@ cases:
     id: east-exit
     from: west
     to: east
-  expected-claims:
-  - junction:east-throat
-  - junction:west-throat
-  - track-section:east-exit
-  - track-section:platform-1
-  - track-section:west-entry
-  expected-requirements:
-  - east-throat-turnout=normal
-  - west-throat-turnout=normal
+  expected-claims: [junction:east-throat, junction:west-throat, track-section:east-exit, track-section:platform-1, track-section:west-entry]
+  expected-requirements: [east-throat-turnout=normal, west-throat-turnout=normal]
   expectation: The path and claims include both throats and every intervening Track
     Section.
 - id: station-reverse-platform-1
   fixture: valid-station.yaml
-  adr-0010-scenarios:
-  - 3
+  adr-0010-scenarios: [3]
   phase: compilation
   outcome: valid
   route: east-to-west-via-platform-1
@@ -131,47 +117,29 @@ cases:
     id: west-entry
     from: east
     to: west
-  expected-claims:
-  - junction:east-throat
-  - junction:west-throat
-  - track-section:east-exit
-  - track-section:platform-1
-  - track-section:west-entry
-  expected-requirements:
-  - east-throat-turnout=normal
-  - west-throat-turnout=normal
+  expected-claims: [junction:east-throat, junction:west-throat, track-section:east-exit, track-section:platform-1, track-section:west-entry]
+  expected-requirements: [east-throat-turnout=normal, west-throat-turnout=normal]
   expectation: Reverse-directed elements retain the same base physical claims.
 - id: disjoint-routes
   fixture: valid-station.yaml
-  adr-0010-scenarios:
-  - 4
+  adr-0010-scenarios: [4]
   phase: compatibility
   outcome: compatible
-  routes:
-  - west-to-east-via-platform-1
-  - depot-only
+  routes: [west-to-east-via-platform-1, depot-only]
   expected-result:
-    route-pair:
-    - depot-only
-    - west-to-east-via-platform-1
+    route-pair: [depot-only, west-to-east-via-platform-1]
     compatible: true
     conflicts: []
   expectation: The two plans have disjoint claims and no incompatible requirements.
 - id: different-device-positions
   fixture: valid-station.yaml
-  adr-0010-scenarios:
-  - 5
+  adr-0010-scenarios: [5]
   phase: compatibility
   outcome: conflict
-  routes:
-  - west-to-platform-1
-  - west-to-platform-2
-  expected-conflicts:
-  - control-device:west-throat-turnout:normal:reverse
+  routes: [west-to-platform-1, west-to-platform-2]
+  expected-conflicts: [control-device:west-throat-turnout:normal:reverse]
   expected-result:
-    route-pair:
-    - west-to-platform-1
-    - west-to-platform-2
+    route-pair: [west-to-platform-1, west-to-platform-2]
     compatible: false
     conflicts:
     - kind: incompatible-control-device-requirement
@@ -180,116 +148,80 @@ cases:
         west-to-platform-1: normal
         west-to-platform-2: reverse
       provenance:
-        west-to-platform-1:
-        - junction-passage:west-to-platform-1
-        west-to-platform-2:
-        - junction-passage:west-to-platform-2
+        west-to-platform-1: [junction-passage:west-to-platform-1]
+        west-to-platform-2: [junction-passage:west-to-platform-2]
   expectation: Different positions of west-throat-turnout conflict even though route exits
     differ.
 - id: same-device-position-shared-resources
   fixture: valid-station.yaml
-  adr-0010-scenarios:
-  - 6
-  - 7
+  adr-0010-scenarios: [6, 7]
   phase: compatibility
   outcome: conflict
-  routes:
-  - west-to-east-via-platform-1
-  - west-to-platform-1
-  expected-conflicts:
-  - junction:west-throat
-  - track-section:platform-1
-  - track-section:west-entry
+  routes: [west-to-east-via-platform-1, west-to-platform-1]
+  expected-conflicts: [junction:west-throat, track-section:platform-1, track-section:west-entry]
   expected-result:
-    route-pair:
-    - west-to-east-via-platform-1
-    - west-to-platform-1
+    route-pair: [west-to-east-via-platform-1, west-to-platform-1]
     compatible: false
     conflicts:
     - kind: overlapping-exclusive-claim
       resource: junction:west-throat
       provenance:
-        west-to-east-via-platform-1:
-        - junction-passage:west-to-platform-1
-        west-to-platform-1:
-        - junction-passage:west-to-platform-1
+        west-to-east-via-platform-1: [junction-passage:west-to-platform-1]
+        west-to-platform-1: [junction-passage:west-to-platform-1]
     - kind: overlapping-exclusive-claim
       resource: track-section:platform-1
       provenance:
-        west-to-east-via-platform-1:
-        - track-section:platform-1
-        west-to-platform-1:
-        - track-section:platform-1
+        west-to-east-via-platform-1: [track-section:platform-1]
+        west-to-platform-1: [track-section:platform-1]
     - kind: overlapping-exclusive-claim
       resource: track-section:west-entry
       provenance:
-        west-to-east-via-platform-1:
-        - track-section:west-entry
-        west-to-platform-1:
-        - track-section:west-entry
+        west-to-east-via-platform-1: [track-section:west-entry]
+        west-to-platform-1: [track-section:west-entry]
   expectation: Equal device requirements do not remove common-throat and shared-track
     claims.
 - id: crossing-and-protection
   fixture: valid-protection.yaml
-  adr-0010-scenarios:
-  - 7
+  adr-0010-scenarios: [7]
   phase: compatibility
   outcome: conflict
-  routes:
-  - west-to-east
-  - north-to-south
-  expected-conflicts:
-  - junction:diamond
-  - protection-zone:crossing-fouling
+  routes: [west-to-east, north-to-south]
+  expected-conflicts: [junction:diamond, protection-zone:crossing-fouling]
   expected-result:
-    route-pair:
-    - north-to-south
-    - west-to-east
+    route-pair: [north-to-south, west-to-east]
     compatible: false
     conflicts:
     - kind: overlapping-exclusive-claim
       resource: junction:diamond
       provenance:
-        north-to-south:
-        - junction-passage:north-to-south
-        west-to-east:
-        - junction-passage:west-to-east
+        north-to-south: [junction-passage:north-to-south]
+        west-to-east: [junction-passage:west-to-east]
     - kind: overlapping-exclusive-claim
       resource: protection-zone:crossing-fouling
       provenance:
-        north-to-south:
-        - protection-rule:north-south-fouling
-        west-to-east:
-        - protection-rule:east-west-fouling
+        north-to-south: [protection-rule:north-south-fouling]
+        west-to-east: [protection-rule:east-west-fouling]
   expectation: Crossing and fouling conflicts are shared declared claims with rule
     provenance.
 - id: non-path-protection
   fixture: valid-protection.yaml
-  adr-0010-scenarios:
-  - 7
-  - 13
+  adr-0010-scenarios: [7, 13]
   phase: compilation
   outcome: valid
   route: west-to-east
-  expected-non-path-claims:
-  - protection-zone:crossing-fouling
-  - protection-zone:east-overlap
-  - protection-zone:siding-flank
-  expected-requirements:
-  - siding-trap=protecting
+  expected-non-path-claims: [protection-zone:crossing-fouling, protection-zone:east-overlap, protection-zone:siding-flank]
+  expected-requirements: [siding-trap=protecting]
   expectation: Fouling, flank, and overlap rules contribute non-path claims and requirements.
 - id: multi-section-detector
   fixture: valid-occupancy.yaml
-  adr-0010-scenarios:
-  - 8
+  adr-0010-scenarios: [8]
   phase: validation
   outcome: valid
   expectation: main-detector completely covers two Track Sections without merging
     their identities.
 - id: straddling-and-partial-evidence
   fixture: valid-occupancy.yaml
-  adr-0010-scenarios:
-  - 9
+  adr-0010-scenarios: [9]
   phase: runtime-rule
   outcome: denied
   route: west-to-main
@@ -297,8 +229,7 @@ cases:
     overlapped route claim unavailable.
 - id: startup-and-lost-feedback
   fixture: valid-occupancy.yaml
-  adr-0010-scenarios:
-  - 12
+  adr-0010-scenarios: [12]
   phase: runtime-rule
   outcome: denied
   route: west-to-main
@@ -306,8 +237,7 @@ cases:
     unknown and cannot support movement authority.
 - id: unresolved-reference
   fixture: invalid-unresolved-reference.yaml
-  adr-0010-scenarios:
-  - 11
+  adr-0010-scenarios: [11]
   phase: validation
   outcome: diagnostic
   diagnostic: E200
@@ -315,8 +245,7 @@ cases:
   expectation: An unknown Port reference is rejected rather than inferred.
 - id: dangling-nonterminal-port
   fixture: invalid-dangling-port.yaml
-  adr-0010-scenarios:
-  - 11
+  adr-0010-scenarios: [11]
   phase: validation
   outcome: diagnostic
   diagnostic: E204
@@ -324,8 +253,7 @@ cases:
   expectation: A missing Connection on a nonterminal Port is rejected.
 - id: ambiguous-passage-selection
   fixture: invalid-ambiguous-passage.yaml
-  adr-0010-scenarios:
-  - 11
+  adr-0010-scenarios: [11]
   phase: validation
   outcome: diagnostic
   diagnostic: E300
@@ -334,8 +262,7 @@ cases:
     exits.
 - id: contradictory-route-requirements
   fixture: invalid-contradictory-requirements.yaml
-  adr-0010-scenarios:
-  - 11
+  adr-0010-scenarios: [11]
   phase: compilation
   outcome: diagnostic
   diagnostic: E404
@@ -344,8 +271,7 @@ cases:
     of one device.
 - id: ambiguous-route
   fixture: invalid-ambiguous-route.yaml
-  adr-0010-scenarios:
-  - 11
+  adr-0010-scenarios: [11]
   phase: compilation
   outcome: diagnostic
   diagnostic: E401
@@ -353,8 +279,7 @@ cases:
   expectation: Two paths satisfying an unconstrained Route Definition are rejected.
 - id: cyclic-repeated-resource-route
   fixture: invalid-repeated-resource.yaml
-  adr-0010-scenarios:
-  - 11
+  adr-0010-scenarios: [11]
   phase: compilation
   outcome: diagnostic
   diagnostic: E402
@@ -363,8 +288,7 @@ cases:
     rejected.
 - id: compiled-plan-audit
   fixture: valid-station.yaml
-  adr-0010-scenarios:
-  - 11
+  adr-0010-scenarios: [11]
   phase: compilation
   outcome: valid
   route: west-to-east-via-platform-1

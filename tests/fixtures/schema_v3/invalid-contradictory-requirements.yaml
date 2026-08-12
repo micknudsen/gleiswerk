@@ -1,17 +1,11 @@
 schema-version: 3
 junctions:
   throat:
-    ports:
-    - west
-    - main
-    terminal-ports:
-    - west
-    - main
+    ports: [west, main]
+    terminal-ports: [west, main]
 control-devices:
   throat-turnout:
-    positions:
-    - normal
-    - reverse
+    positions: [normal, reverse]
 junction-passages:
   to-main:
     junction: throat
@@ -30,5 +24,4 @@ route-definitions:
   to-main:
     entry: junction:throat:west
     exit: junction:throat:main
-    via:
-    - junction-passage:to-main
+    via: [junction-passage:to-main]

@@ -78,6 +78,11 @@ The automated CLI tests run both commands against these exact reference
 layouts. The full output also has a `topology-revision` value; it identifies
 the declared topology used to compile the compared plans.
 
+CLI reports use block-style collections for records and compact flow-style
+sequences for scalar references, route pairs, and empty lists. This preserves
+the structure of each report while keeping short deterministic values easy to
+compare.
+
 ### Reading conflicts
 
 `overlapping-exclusive-claim` means both compiled plans declare the same

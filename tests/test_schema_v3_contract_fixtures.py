@@ -11,6 +11,10 @@ from gleiswerk.topology_config import TopologyConfigurationError, load_topology
 
 FIXTURE_DIRECTORY = Path(__file__).parent / "fixtures" / "schema_v3"
 MANIFEST = FIXTURE_DIRECTORY / "manifest.yaml"
+_BLOCK_STYLE_SCALAR_SEQUENCE = re.compile(
+    r"^(\s*)[^\s#][^:\n]*:\n\1  - (?![a-zA-Z0-9_-]+: )",
+    re.MULTILINE,
+)
 
 
 def test_every_schema_v3_layout_fixture_is_valid_yaml() -> None:
@@ -22,6 +26,13 @@ def test_every_schema_v3_layout_fixture_is_valid_yaml() -> None:
             continue
         data = yaml.safe_load(fixture.read_text(encoding="utf-8"))
         assert data["schema-version"] == 3
+
+
+def test_schema_v3_fixtures_use_compact_scalar_sequences() -> None:
+    for fixture in sorted(FIXTURE_DIRECTORY.glob("*.yaml")):
+        contents = fixture.read_text(encoding="utf-8")
+
+        assert not _BLOCK_STYLE_SCALAR_SEQUENCE.search(contents), fixture
 
 
 def test_manifest_covers_every_fixture_and_adr_0010_scenario() -> None:

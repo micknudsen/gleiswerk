@@ -89,9 +89,7 @@ track-sections:
         to: east
 connections:
   approach-to-platform:
-    ports:
-      - track-section:approach:east
-      - track-section:platform:west
+    ports: [track-section:approach:east, track-section:platform:west]
     movements:
       - from: track-section:approach:east
         to: track-section:platform:west

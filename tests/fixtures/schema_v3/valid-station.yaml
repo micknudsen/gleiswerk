@@ -1,52 +1,38 @@
 schema-version: 3
 track-sections:
   west-entry:
-    ports:
-    - west
-    - east
-    terminal-ports:
-    - west
+    ports: [west, east]
+    terminal-ports: [west]
     movements:
     - from: west
       to: east
     - from: east
       to: west
   platform-1:
-    ports:
-    - west
-    - east
+    ports: [west, east]
     movements:
     - from: west
       to: east
     - from: east
       to: west
   platform-2:
-    ports:
-    - west
-    - east
+    ports: [west, east]
     movements:
     - from: west
       to: east
     - from: east
       to: west
   east-exit:
-    ports:
-    - west
-    - east
-    terminal-ports:
-    - east
+    ports: [west, east]
+    terminal-ports: [east]
     movements:
     - from: west
       to: east
     - from: east
       to: west
   depot:
-    ports:
-    - west
-    - east
-    terminal-ports:
-    - west
-    - east
+    ports: [west, east]
+    terminal-ports: [west, east]
     movements:
     - from: west
       to: east
@@ -54,74 +40,52 @@ track-sections:
       to: west
 junctions:
   west-throat:
-    ports:
-    - west
-    - platform-1
-    - platform-2
+    ports: [west, platform-1, platform-2]
   east-throat:
-    ports:
-    - platform-1
-    - platform-2
-    - east
+    ports: [platform-1, platform-2, east]
 control-devices:
   west-throat-turnout:
-    positions:
-    - normal
-    - reverse
+    positions: [normal, reverse]
   east-throat-turnout:
-    positions:
-    - normal
-    - reverse
+    positions: [normal, reverse]
 connections:
   west-entry-to-throat:
-    ports:
-    - track-section:west-entry:east
-    - junction:west-throat:west
+    ports: [track-section:west-entry:east, junction:west-throat:west]
     movements:
     - from: track-section:west-entry:east
       to: junction:west-throat:west
     - from: junction:west-throat:west
       to: track-section:west-entry:east
   west-throat-to-platform-1:
-    ports:
-    - junction:west-throat:platform-1
-    - track-section:platform-1:west
+    ports: [junction:west-throat:platform-1, track-section:platform-1:west]
     movements:
     - from: junction:west-throat:platform-1
       to: track-section:platform-1:west
     - from: track-section:platform-1:west
       to: junction:west-throat:platform-1
   west-throat-to-platform-2:
-    ports:
-    - junction:west-throat:platform-2
-    - track-section:platform-2:west
+    ports: [junction:west-throat:platform-2, track-section:platform-2:west]
     movements:
     - from: junction:west-throat:platform-2
       to: track-section:platform-2:west
     - from: track-section:platform-2:west
       to: junction:west-throat:platform-2
   platform-1-to-east-throat:
-    ports:
-    - track-section:platform-1:east
-    - junction:east-throat:platform-1
+    ports: [track-section:platform-1:east, junction:east-throat:platform-1]
     movements:
     - from: track-section:platform-1:east
       to: junction:east-throat:platform-1
     - from: junction:east-throat:platform-1
       to: track-section:platform-1:east
   platform-2-to-east-throat:
-    ports:
-    - track-section:platform-2:east
-    - junction:east-throat:platform-2
+    ports: [track-section:platform-2:east, junction:east-throat:platform-2]
     movements:
     - from: track-section:platform-2:east
       to: junction:east-throat:platform-2
     - from: junction:east-throat:platform-2
       to: track-section:platform-2:east
   east-throat-to-exit:
-    ports:
-    - junction:east-throat:east
-    - track-section:east-exit:west
+    ports: [junction:east-throat:east, track-section:east-exit:west]
     movements:
     - from: junction:east-throat:east
       to: track-section:east-exit:west
@@ -180,25 +144,19 @@ route-definitions:
   west-to-east-via-platform-1:
     entry: track-section:west-entry:west
     exit: track-section:east-exit:east
-    via:
-    - junction-passage:west-to-platform-1
-    - junction-passage:platform-1-to-east
+    via: [junction-passage:west-to-platform-1, junction-passage:platform-1-to-east]
   east-to-west-via-platform-1:
     entry: track-section:east-exit:east
     exit: track-section:west-entry:west
-    via:
-    - junction-passage:east-to-platform-1
-    - junction-passage:platform-1-to-west
+    via: [junction-passage:east-to-platform-1, junction-passage:platform-1-to-west]
   west-to-platform-1:
     entry: track-section:west-entry:west
     exit: track-section:platform-1:east
-    via:
-    - junction-passage:west-to-platform-1
+    via: [junction-passage:west-to-platform-1]
   west-to-platform-2:
     entry: track-section:west-entry:west
     exit: track-section:platform-2:east
-    via:
-    - junction-passage:west-to-platform-2
+    via: [junction-passage:west-to-platform-2]
   depot-only:
     entry: track-section:depot:west
     exit: track-section:depot:east

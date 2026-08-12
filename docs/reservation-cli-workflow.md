@@ -87,6 +87,9 @@ owner, route, claims, and declared Control Device requirements. Every result
 has `success` and `outcome`; denied acquisitions include the complete core
 denial explanation, and denied releases include `not-found` or `not-owner`.
 All lists retain the deterministic ordering supplied by the reservation core.
+CLI reports render record collections in block style and scalar reference or
+empty sequences in compact flow style, such as
+`requested-provenance: [track-section:platform]`.
 
 This report explains only the declared plans and the in-memory sequence. Even
 an `acquired` result is neither evidence that a device moved nor permission for

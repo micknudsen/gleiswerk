@@ -1,22 +1,16 @@
 schema-version: 3
 track-sections:
   approach:
-    ports:
-    - west
-    - east
-    terminal-ports:
-    - west
+    ports: [west, east]
+    terminal-ports: [west]
     movements:
     - from: west
       to: east
     - from: east
       to: west
   platform:
-    ports:
-    - west
-    - east
-    terminal-ports:
-    - east
+    ports: [west, east]
+    terminal-ports: [east]
     movements:
     - from: west
       to: east
@@ -24,9 +18,7 @@ track-sections:
       to: west
 connections:
   approach-to-platform:
-    ports:
-    - track-section:approach:east
-    - track-section:platform:west
+    ports: [track-section:approach:east, track-section:platform:west]
     movements:
     - from: track-section:approach:east
       to: track-section:platform:west
@@ -36,8 +28,7 @@ route-definitions:
   direct-arrival:
     entry: track-section:approach:west
     exit: track-section:platform:east
-    via:
-    - connection:approach-to-platform
+    via: [connection:approach-to-platform]
   within-platform:
     entry: track-section:platform:west
     exit: track-section:platform:east

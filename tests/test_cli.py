@@ -98,9 +98,22 @@ def test_documented_conflicting_reference_layout_reports_a_stable_result() -> No
 
     assert result.returncode == 0
     assert result.stderr == ""
+    assert result.stdout == (
+        "topology-revision: sha256:"
+        "9f8a1e165ba31073b9a5e887c8c854e90cfe1cda302cde76fbaa4dcf60df16cb\n"
+        "pairs:\n"
+        "- route-pair: [direct-arrival, within-platform]\n"
+        "  compatible: false\n"
+        "  conflicts:\n"
+        "  - kind: overlapping-exclusive-claim\n"
+        "    resource: track-section:platform\n"
+        "    provenance:\n"
+        "      direct-arrival: [track-section:platform]\n"
+        "      within-platform: [track-section:platform]\n"
+    )
     assert yaml.safe_load(result.stdout) == {
         "topology-revision": "sha256:"
-        "d3142628cbd9500f0056c08d3eaad8cdb5ffcacaf0be818f277b4533e23e0dba",
+        "9f8a1e165ba31073b9a5e887c8c854e90cfe1cda302cde76fbaa4dcf60df16cb",
         "pairs": [
             {
                 "route-pair": ["direct-arrival", "within-platform"],
@@ -179,6 +192,36 @@ def test_layout_reservations_reports_structured_incompatible_denial() -> None:
 
     assert result.returncode == 0
     assert result.stderr == ""
+    assert result.stdout == (
+        "topology-revision: sha256:"
+        "9f8a1e165ba31073b9a5e887c8c854e90cfe1cda302cde76fbaa4dcf60df16cb\n"
+        "operations:\n"
+        "- operation: acquire\n"
+        "  owner: dispatcher-a\n"
+        "  route: direct-arrival\n"
+        "  success: true\n"
+        "  outcome: acquired\n"
+        "  reservation: reservation-1\n"
+        "- operation: acquire\n"
+        "  owner: dispatcher-b\n"
+        "  route: within-platform\n"
+        "  success: false\n"
+        "  outcome: incompatible\n"
+        "  denial:\n"
+        "    kind: incompatible\n"
+        "    claim-conflicts:\n"
+        "    - resource: track-section:platform\n"
+        "      requested-provenance: [track-section:platform]\n"
+        "      held-reservation: reservation-1\n"
+        "      held-provenance: [track-section:platform]\n"
+        "    device-constraint-conflicts: []\n"
+        "- operation: release\n"
+        "  owner: dispatcher-a\n"
+        "  reservation: reservation-1\n"
+        "  success: true\n"
+        "  outcome: released\n"
+        "held-reservations: []\n"
+    )
     report = yaml.safe_load(result.stdout)
     denied = report["operations"][1]
     assert denied == {

@@ -50,3 +50,4 @@ nav:
       - Resource-complete topology: adr/0010-resource-complete-topology.md
       - Route-reservation lifecycle and safety invariants: adr/0011-route-reservation-lifecycle.md
       - Topology-bound reservation managers: adr/0012-topology-bound-reservation-managers.md
+      - Movement-authority safety invariants: adr/0013-movement-authority-safety-invariants.md

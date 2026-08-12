@@ -9,9 +9,9 @@ while keeping its automation core independent of any particular command
 station.
 
 Schema version 3 provides validated, resource-complete logical topology,
-compiled route plans, and explainable static compatibility analysis. It remains
-descriptive only: Gleiswerk does not yet control railway hardware, reserve
-resources, or authorize train movements.
+compiled route plans, explainable static compatibility analysis, and bounded
+in-memory reservation evaluation. It does not control railway hardware or
+authorize train movements.
 
 See the [layout configuration guide](docs/layout-configuration.md) for the
 schema-v3 authoring model and validated reference layouts.
@@ -25,6 +25,7 @@ gleiswerk --help
 gleiswerk --version
 gleiswerk layout validate layout.yaml
 gleiswerk layout compatibility layout.yaml
+gleiswerk layout reservations layout.yaml operations.yaml
 ```
 
 The package can also be invoked as a Python module:

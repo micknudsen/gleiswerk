@@ -31,6 +31,14 @@ allowed and is required whenever a YAML implementation would otherwise resolve
 it to a non-string. The reference fixtures use plain scalars only where their
 YAML 1.2 type is unambiguously a string.
 
+### YAML presentation
+
+Checked-in layout files, fixture manifests, and documented YAML examples use
+compact flow style for scalar sequences, such as `ports: [west, east]` and
+`claims: [protection-zone:west-flank]`. Sequences of mappings remain in block
+style. This presentation convention does not change the accepted schema or the
+meaning of a document.
+
 All collection IDs, local port IDs, device position IDs, and rule IDs match:
 
 ```text
@@ -172,9 +180,7 @@ distinct Ports, and reverse movement is declared separately.
 ```yaml
 connections:
   entry-to-throat:
-    ports:
-      - track-section:west-entry:east
-      - junction:west-throat:west
+    ports: [track-section:west-entry:east, junction:west-throat:west]
     movements:
       - from: track-section:west-entry:east
         to: junction:west-throat:west

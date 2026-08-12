@@ -1,97 +1,65 @@
 schema-version: 3
 track-sections:
   west:
-    ports:
-    - outer
-    - throat
-    terminal-ports:
-    - outer
+    ports: [outer, throat]
+    terminal-ports: [outer]
     movements:
     - from: outer
       to: throat
   main:
-    ports:
-    - west
-    - east
+    ports: [west, east]
     movements:
     - from: west
       to: east
   loop:
-    ports:
-    - west
-    - east
+    ports: [west, east]
     movements:
     - from: west
       to: east
   east:
-    ports:
-    - throat
-    - outer
-    terminal-ports:
-    - outer
+    ports: [throat, outer]
+    terminal-ports: [outer]
     movements:
     - from: throat
       to: outer
 junctions:
   west-throat:
-    ports:
-    - west
-    - main
-    - loop
+    ports: [west, main, loop]
   east-throat:
-    ports:
-    - main
-    - loop
-    - east
+    ports: [main, loop, east]
 control-devices:
   west-throat-turnout:
-    positions:
-    - main
-    - loop
+    positions: [main, loop]
   east-throat-turnout:
-    positions:
-    - main
-    - loop
+    positions: [main, loop]
 connections:
   west-to-throat:
-    ports:
-    - track-section:west:throat
-    - junction:west-throat:west
+    ports: [track-section:west:throat, junction:west-throat:west]
     movements:
     - from: track-section:west:throat
       to: junction:west-throat:west
   west-throat-to-main:
-    ports:
-    - junction:west-throat:main
-    - track-section:main:west
+    ports: [junction:west-throat:main, track-section:main:west]
     movements:
     - from: junction:west-throat:main
       to: track-section:main:west
   west-throat-to-loop:
-    ports:
-    - junction:west-throat:loop
-    - track-section:loop:west
+    ports: [junction:west-throat:loop, track-section:loop:west]
     movements:
     - from: junction:west-throat:loop
       to: track-section:loop:west
   main-to-east-throat:
-    ports:
-    - track-section:main:east
-    - junction:east-throat:main
+    ports: [track-section:main:east, junction:east-throat:main]
     movements:
     - from: track-section:main:east
       to: junction:east-throat:main
   loop-to-east-throat:
-    ports:
-    - track-section:loop:east
-    - junction:east-throat:loop
+    ports: [track-section:loop:east, junction:east-throat:loop]
     movements:
     - from: track-section:loop:east
       to: junction:east-throat:loop
   east-throat-to-east:
-    ports:
-    - junction:east-throat:east
-    - track-section:east:throat
+    ports: [junction:east-throat:east, track-section:east:throat]
     movements:
     - from: junction:east-throat:east
       to: track-section:east:throat

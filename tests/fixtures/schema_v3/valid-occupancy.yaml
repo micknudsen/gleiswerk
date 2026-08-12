@@ -1,33 +1,24 @@
 schema-version: 3
 track-sections:
   west:
-    ports:
-    - outer
-    - throat
-    terminal-ports:
-    - outer
+    ports: [outer, throat]
+    terminal-ports: [outer]
     movements:
     - from: outer
       to: throat
     - from: throat
       to: outer
   main:
-    ports:
-    - throat
-    - outer
-    terminal-ports:
-    - outer
+    ports: [throat, outer]
+    terminal-ports: [outer]
     movements:
     - from: throat
       to: outer
     - from: outer
       to: throat
   siding:
-    ports:
-    - throat
-    - outer
-    terminal-ports:
-    - outer
+    ports: [throat, outer]
+    terminal-ports: [outer]
     movements:
     - from: throat
       to: outer
@@ -35,38 +26,27 @@ track-sections:
       to: throat
 junctions:
   throat:
-    ports:
-    - west
-    - main
-    - siding
+    ports: [west, main, siding]
 control-devices:
   throat-turnout:
-    positions:
-    - normal
-    - reverse
+    positions: [normal, reverse]
 connections:
   west-to-throat:
-    ports:
-    - track-section:west:throat
-    - junction:throat:west
+    ports: [track-section:west:throat, junction:throat:west]
     movements:
     - from: track-section:west:throat
       to: junction:throat:west
     - from: junction:throat:west
       to: track-section:west:throat
   throat-to-main:
-    ports:
-    - junction:throat:main
-    - track-section:main:throat
+    ports: [junction:throat:main, track-section:main:throat]
     movements:
     - from: junction:throat:main
       to: track-section:main:throat
     - from: track-section:main:throat
       to: junction:throat:main
   throat-to-siding:
-    ports:
-    - junction:throat:siding
-    - track-section:siding:throat
+    ports: [junction:throat:siding, track-section:siding:throat]
     movements:
     - from: junction:throat:siding
       to: track-section:siding:throat
@@ -104,5 +84,4 @@ route-definitions:
   west-to-main:
     entry: track-section:west:outer
     exit: track-section:main:outer
-    via:
-    - junction-passage:west-to-main
+    via: [junction-passage:west-to-main]

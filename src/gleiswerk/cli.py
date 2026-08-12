@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 from collections.abc import Mapping, Sequence
 from importlib.metadata import version
 from pathlib import Path
+from re import sub
 from typing import cast
 
 import yaml
@@ -42,6 +43,35 @@ from gleiswerk.topology_config import TopologyConfigurationError, load_topology
 
 _DISTRIBUTION_NAME = "gleiswerk"
 _PRODUCT_NAME = "Gleiswerk"
+
+
+class _ReportYamlDumper(yaml.SafeDumper):
+    """Render scalar sequences compactly in human-facing reports."""
+
+
+def _represent_report_list(
+    dumper: yaml.SafeDumper, data: list[object]
+) -> yaml.nodes.SequenceNode:
+    """Keep report collections readable while compacting scalar references."""
+    scalar_types = (str, int, float, bool, type(None))
+    return dumper.represent_sequence(
+        "tag:yaml.org,2002:seq",
+        data,
+        flow_style=all(isinstance(item, scalar_types) for item in data),
+    )
+
+
+_ReportYamlDumper.add_representer(list, _represent_report_list)
+
+
+def _dump_report(document: Mapping[str, object]) -> str:
+    """Serialize a CLI report using its stable presentation convention."""
+    serialized = yaml.dump(document, Dumper=_ReportYamlDumper, sort_keys=False)
+    return sub(
+        r"(\[|, )'([a-z][a-z0-9-]*:[a-z][a-z0-9-]*)'(?=,|\])",
+        r"\1\2",
+        serialized,
+    )
 
 
 def build_parser() -> ArgumentParser:
@@ -121,7 +151,7 @@ def _report_layout_compatibility(file: str) -> int:
         print(f"ERROR {error}", file=sys.stderr)
         return 1
 
-    print(yaml.safe_dump(_compatibility_document(analysis), sort_keys=False), end="")
+    print(_dump_report(_compatibility_document(analysis)), end="")
     return 0
 
 
@@ -182,7 +212,7 @@ def _evaluate_reservation_operations(layout_file: str, operations_file: str) -> 
 
     inspection = manager.inspect()
     print(
-        yaml.safe_dump(
+        _dump_report(
             {
                 "topology-revision": inspection.topology_revision,
                 "operations": results,
@@ -191,7 +221,6 @@ def _evaluate_reservation_operations(layout_file: str, operations_file: str) -> 
                     for reservation in inspection.reservations
                 ],
             },
-            sort_keys=False,
         ),
         end="",
     )

@@ -1,31 +1,23 @@
 schema-version: 3
 track-sections:
   a:
-    ports:
-    - one
-    - two
+    ports: [one, two]
     movements:
     - from: one
       to: two
   b:
-    ports:
-    - one
-    - two
+    ports: [one, two]
     movements:
     - from: one
       to: two
 connections:
   first-to-second:
-    ports:
-    - track-section:a:two
-    - track-section:b:one
+    ports: [track-section:a:two, track-section:b:one]
     movements:
     - from: track-section:a:two
       to: track-section:b:one
   second-to-first:
-    ports:
-    - track-section:b:two
-    - track-section:a:one
+    ports: [track-section:b:two, track-section:a:one]
     movements:
     - from: track-section:b:two
       to: track-section:a:one
@@ -33,5 +25,4 @@ route-definitions:
   loop:
     entry: track-section:a:one
     exit: track-section:a:two
-    via:
-    - connection:second-to-first
+    via: [connection:second-to-first]

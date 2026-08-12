@@ -14,3 +14,4 @@ their rationale, and their consequences.
 - [0009: Schema-v2 topology contract](0009-schema-v2-topology-contract.md)
 - [0010: Resource-complete topology](0010-resource-complete-topology.md)
 - [0011: Route-reservation lifecycle and safety invariants](0011-route-reservation-lifecycle.md)
+- [0012: Topology-bound reservation managers](0012-topology-bound-reservation-managers.md)

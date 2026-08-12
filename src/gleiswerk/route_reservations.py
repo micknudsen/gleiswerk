@@ -1,14 +1,10 @@
-"""Immutable, controller-independent contracts for RoutePlan reservations.
-
-This module deliberately contains no reservation state or locking behavior.
-``ReservationManager`` and its atomic operations are specified by the next
-implementation increment; these values are its public input and result shape.
-"""
+"""Controller-independent contracts and atomic state for RoutePlan reservations."""
 
 from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from threading import RLock
 from types import MappingProxyType
 from typing import Literal, NewType, TypeAlias
 
@@ -20,6 +16,7 @@ from gleiswerk.topology import (
     JunctionResource,
     RouteDefinitionId,
     RoutePlan,
+    Topology,
     TrackSectionResource,
 )
 
@@ -130,13 +127,6 @@ class IncompatibleReservationDeviceConstraint:
 
 
 @dataclass(frozen=True, slots=True)
-class NoActiveTopology:
-    """The manager cannot accept plans until a topology revision is active."""
-
-    kind: Literal["no-active-topology"] = "no-active-topology"
-
-
-@dataclass(frozen=True, slots=True)
 class InvalidReservationPlan:
     """The supplied plan failed the manager's defensive plan validation."""
 
@@ -190,10 +180,7 @@ class IncompatibleReservation:
 
 
 AcquireDenialReason: TypeAlias = (
-    NoActiveTopology
-    | InvalidReservationPlan
-    | TopologyRevisionMismatch
-    | IncompatibleReservation
+    InvalidReservationPlan | TopologyRevisionMismatch | IncompatibleReservation
 )
 
 
@@ -206,7 +193,6 @@ class AcquireReservationResult:
         "invalid-plan",
         "revision-mismatch",
         "incompatible",
-        "no-active-topology",
     ]
     reservation: Reservation | None = None
     denial_reason: AcquireDenialReason | None = None
@@ -242,7 +228,7 @@ class ReleaseReservationResult:
 class ReservationInspection:
     """A read-only deterministic snapshot of one manager's held reservations."""
 
-    active_topology_revision: str | None
+    topology_revision: str
     reservations: tuple[Reservation, ...]
 
     def __post_init__(self) -> None:
@@ -253,9 +239,169 @@ class ReservationInspection:
         )
 
 
+class ReservationManager:
+    """Atomically hold RoutePlan claims for one immutable topology.
+
+    This manager is intentionally an in-memory, controller-independent core
+    component. Acquiring a reservation neither commands a device nor permits a
+    train to move.
+    """
+
+    def __init__(self, topology: Topology) -> None:
+        self._topology_revision = topology.revision
+        self._reservations: dict[ReservationId, Reservation] = {}
+        self._next_reservation_number = 1
+        self._lock = RLock()
+
+    def acquire(self, request: AcquireReservationRequest) -> AcquireReservationResult:
+        """Atomically acquire every claim in a plan or leave state unchanged."""
+
+        with self._lock:
+            if not _is_valid_plan(request.plan):
+                return AcquireReservationResult(
+                    "invalid-plan", denial_reason=InvalidReservationPlan()
+                )
+            if request.plan.topology_revision != self._topology_revision:
+                return AcquireReservationResult(
+                    "revision-mismatch",
+                    denial_reason=TopologyRevisionMismatch(
+                        self._topology_revision, request.plan.topology_revision
+                    ),
+                )
+
+            denial = self._incompatibility_for(request.plan)
+            if denial is not None:
+                return AcquireReservationResult("incompatible", denial_reason=denial)
+
+            reservation = _reservation_from_plan(
+                ReservationId(f"reservation-{self._next_reservation_number}"),
+                request.owner,
+                request.plan,
+            )
+            self._next_reservation_number += 1
+            self._reservations[reservation.id] = reservation
+            return AcquireReservationResult("acquired", reservation=reservation)
+
+    def release(self, request: ReleaseReservationRequest) -> ReleaseReservationResult:
+        """Atomically release one whole reservation if it belongs to the owner."""
+
+        with self._lock:
+            reservation = self._reservations.get(request.reservation_id)
+            if reservation is None:
+                return ReleaseReservationResult(
+                    "not-found", denial_reason=ReservationNotFound()
+                )
+            if reservation.owner != request.owner:
+                return ReleaseReservationResult(
+                    "not-owner", denial_reason=ReservationNotOwner()
+                )
+            del self._reservations[request.reservation_id]
+            return ReleaseReservationResult(
+                "released", reservation_id=request.reservation_id
+            )
+
+    def inspect(self) -> ReservationInspection:
+        """Return an immutable snapshot of this topology and held records."""
+
+        with self._lock:
+            return ReservationInspection(
+                self._topology_revision, tuple(self._reservations.values())
+            )
+
+    def _incompatibility_for(self, plan: RoutePlan) -> IncompatibleReservation | None:
+        claim_conflicts: list[OverlappingReservationClaim] = []
+        device_conflicts: list[IncompatibleReservationDeviceConstraint] = []
+        requested_requirements = {
+            requirement.device_id: requirement for requirement in plan.requirements
+        }
+        for held in self._reservations.values():
+            held_claims = set(held.claims)
+            for resource in plan.claims:
+                if resource in held_claims:
+                    claim_conflicts.append(
+                        OverlappingReservationClaim(
+                            resource,
+                            tuple(
+                                item.source for item in plan.claim_provenance[resource]
+                            ),
+                            held.id,
+                            held.claim_provenance[resource],
+                        )
+                    )
+            held_requirements = {
+                requirement.device_id: requirement for requirement in held.requirements
+            }
+            for device_id, requested in requested_requirements.items():
+                held_requirement = held_requirements.get(device_id)
+                if (
+                    held_requirement is not None
+                    and held_requirement.position_id != requested.position_id
+                ):
+                    device_conflicts.append(
+                        IncompatibleReservationDeviceConstraint(
+                            device_id,
+                            requested.position_id,
+                            tuple(
+                                item.source
+                                for item in plan.requirement_provenance[device_id]
+                            ),
+                            held.id,
+                            held_requirement.position_id,
+                            held.requirement_provenance[device_id],
+                        )
+                    )
+        if not claim_conflicts and not device_conflicts:
+            return None
+        return IncompatibleReservation(tuple(claim_conflicts), tuple(device_conflicts))
+
+
 def _claim_key(claim: ClaimResource) -> tuple[str, str]:
     if isinstance(claim, TrackSectionResource):
         return ("track-section", claim.id)
     if isinstance(claim, JunctionResource):
         return ("junction", claim.id)
     return ("protection-zone", claim.id)
+
+
+def _reservation_from_plan(
+    reservation_id: ReservationId, owner: ReservationOwner, plan: RoutePlan
+) -> Reservation:
+    return Reservation(
+        reservation_id,
+        owner,
+        plan.route_id,
+        plan.topology_revision,
+        plan.claims,
+        plan.requirements,
+        {
+            resource: tuple(item.source for item in sources)
+            for resource, sources in plan.claim_provenance.items()
+        },
+        {
+            device_id: tuple(item.source for item in sources)
+            for device_id, sources in plan.requirement_provenance.items()
+        },
+    )
+
+
+def _is_valid_plan(plan: RoutePlan) -> bool:
+    """Defensively confirm the compiled-plan invariants the manager relies on."""
+
+    if not plan.topology_revision:
+        return False
+    if len(plan.claims) != len(set(plan.claims)):
+        return False
+    if len(plan.requirements) != len(
+        {requirement.device_id for requirement in plan.requirements}
+    ):
+        return False
+    if set(plan.claim_provenance) != set(plan.claims):
+        return False
+    if set(plan.requirement_provenance) != {
+        requirement.device_id for requirement in plan.requirements
+    }:
+        return False
+    return all(plan.claim_provenance[claim] for claim in plan.claims) and all(
+        plan.requirement_provenance[requirement.device_id]
+        for requirement in plan.requirements
+    )

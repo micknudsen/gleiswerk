@@ -25,7 +25,7 @@ age explicitly. Its `qualify()` method returns `fresh` at the exact age limit
 and `stale` after it. It never reads a clock, so callers and tests choose the
 same deterministic basis.
 
-The validator introduced by the next layer returns immutable result values. An
+The topology validator returns immutable result values. An
 occupancy result is `clear`, `occupied`, `unknown`, `stale`, or `faulted`. A
 device-position result is `aligned`, `unaligned`, `unknown`, `stale`, or
 `faulted`, and names the required logical position. Alignment is therefore a
@@ -37,3 +37,21 @@ device.
 An observation is evidence, not a command outcome. Missing, revision-mismatched,
 unknown, stale, faulted, occupied, or unaligned evidence is not clear evidence
 and must fail closed for a later movement-authority decision.
+
+## Topology validation
+
+`validate_evidence()` in `gleiswerk.evidence_validation` assesses observations
+against one immutable `Topology`, compiled `RoutePlan`, and explicit freshness
+basis. It accepts only evidence whose topology revision exactly matches the
+active topology. A plan from a different revision is rejected too.
+
+For every claimed Track Section and Junction, the validator requires exactly
+one declared Occupancy Zone with complete coverage. It rejects absent,
+ambiguous, duplicate, stale, unknown, faulted, and occupied evidence. Partial
+coverage never counts as complete. Each Control Device requirement in the plan
+also needs one fresh, available logical observation of the required position.
+
+The returned `EvidenceValidationResult` carries qualified observations and
+stable `EvidenceRejection` values with logical targets and source IDs. Its
+`is_usable` property is true only when no prerequisite was rejected. Neither
+the validator nor its result knows controller addresses or commands devices.

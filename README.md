@@ -9,9 +9,10 @@ while keeping its automation core independent of any particular command
 station.
 
 Schema version 3 provides validated, resource-complete logical topology,
-compiled route plans, explainable static compatibility analysis, and bounded
-in-memory reservation evaluation. It does not control railway hardware or
-authorize train movements.
+compiled route plans, explainable static compatibility analysis, bounded
+in-memory reservation evaluation, and evidence-gated movement-authority
+decisions. The authority workflow is controller-independent and local only: it
+does not control railway hardware or authorize a real train to move.
 
 See the [layout configuration guide](docs/layout-configuration.md) for the
 schema-v3 authoring model and validated reference layouts.
@@ -27,6 +28,13 @@ gleiswerk layout validate layout.yaml
 gleiswerk layout compatibility layout.yaml
 gleiswerk layout reservations layout.yaml operations.yaml
 ```
+
+The `layout reservations` workflow can evaluate reservations, logical
+evidence, and bounded movement authorities from one finite YAML operations
+document. See the [reservation and movement-authority CLI workflow]
+(docs/reservation-cli-workflow.md) and [movement-authority contract]
+(docs/movement-authority-contract.md) for its evidence requirements and
+explicit safety boundary.
 
 The package can also be invoked as a Python module:
 

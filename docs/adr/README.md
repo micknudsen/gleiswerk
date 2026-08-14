@@ -16,3 +16,4 @@ their rationale, and their consequences.
 - [0011: Route-reservation lifecycle and safety invariants](0011-route-reservation-lifecycle.md)
 - [0012: Topology-bound reservation managers](0012-topology-bound-reservation-managers.md)
 - [0013: Movement-authority safety invariants](0013-movement-authority-safety-invariants.md)
+- [0014: First feedback controller and transport](0014-first-feedback-controller-and-transport.md)

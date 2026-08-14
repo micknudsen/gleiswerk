@@ -17,3 +17,4 @@ their rationale, and their consequences.
 - [0012: Topology-bound reservation managers](0012-topology-bound-reservation-managers.md)
 - [0013: Movement-authority safety invariants](0013-movement-authority-safety-invariants.md)
 - [0014: First feedback controller and transport](0014-first-feedback-controller-and-transport.md)
+- [0015: Märklin feedback binding and evidence trust contract](0015-marklin-feedback-binding-and-evidence-trust.md)

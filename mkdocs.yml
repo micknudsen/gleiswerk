@@ -54,3 +54,4 @@ nav:
       - Route-reservation lifecycle and safety invariants: adr/0011-route-reservation-lifecycle.md
       - Topology-bound reservation managers: adr/0012-topology-bound-reservation-managers.md
       - Movement-authority safety invariants: adr/0013-movement-authority-safety-invariants.md
+      - First feedback controller and transport: adr/0014-first-feedback-controller-and-transport.md

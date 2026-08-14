@@ -1,0 +1,32 @@
+settings:
+  evidence-maximum-age-seconds: 30
+  authority-maximum-validity-seconds: 60
+operations:
+  - operation: acquire
+    owner: dispatcher-a
+    route: west-to-main
+  - operation: observe-occupancy
+    zone: main-detector
+    source: main-source
+    status: available
+    state: clear
+  - operation: observe-occupancy
+    zone: throat-detector
+    source: throat-source
+    status: available
+    state: clear
+  - operation: observe-device-position
+    device: throat-turnout
+    source: turnout-source
+    status: available
+    position: normal
+  - operation: evaluate-authority
+    owner: dispatcher-a
+    reservation: reservation-1
+    route: west-to-main
+    valid-for-seconds: 20
+  - operation: advance-time
+    seconds: 20
+  - operation: reevaluate-authority
+    authority: authority-1
+    route: west-to-main

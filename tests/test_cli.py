@@ -244,3 +244,188 @@ def test_layout_reservations_reports_structured_incompatible_denial() -> None:
         },
     }
     assert report["held-reservations"] == []
+
+
+def test_layout_reservations_grants_authority_for_fresh_clear_evidence() -> None:
+    result = run_module(
+        "layout",
+        "reservations",
+        "tests/fixtures/schema_v3/valid-occupancy.yaml",
+        "tests/fixtures/reservation_operations/authority-grant.yaml",
+    )
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+    report = yaml.safe_load(result.stdout)
+    assert report["operations"][-1] == {
+        "operation": "evaluate-authority",
+        "owner": "dispatcher-a",
+        "reservation": "reservation-1",
+        "route": "west-to-main",
+        "valid-for-seconds": 20,
+        "success": True,
+        "outcome": "granted",
+        "authority": "authority-1",
+    }
+    assert report["authorities"] == [
+        {
+            "id": "authority-1",
+            "reservation": "reservation-1",
+            "owner": "dispatcher-a",
+            "route": "west-to-main",
+            "topology-revision": report["topology-revision"],
+            "scope": [
+                "junction:throat",
+                "track-section:main",
+                "track-section:west",
+            ],
+            "issued-at-seconds": 0.0,
+            "expires-at-seconds": 20.0,
+            "status": "live",
+        }
+    ]
+    assert [item["id"] for item in report["held-reservations"]] == ["reservation-1"]
+
+    repeated = run_module(
+        "layout",
+        "reservations",
+        "tests/fixtures/schema_v3/valid-occupancy.yaml",
+        "tests/fixtures/reservation_operations/authority-grant.yaml",
+    )
+    assert repeated.stdout == result.stdout
+
+
+def test_layout_reservations_requires_explicit_authority_settings(
+    tmp_path: Path,
+) -> None:
+    workflow = tmp_path / "workflow.yaml"
+    workflow.write_text(
+        """operations:
+  - operation: advance-time
+    seconds: 1
+""",
+        encoding="utf-8",
+    )
+
+    result = run_module(
+        "layout",
+        "reservations",
+        "tests/fixtures/schema_v3/valid-occupancy.yaml",
+        str(workflow),
+    )
+
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert result.stderr == (
+        f"ERROR {workflow}: authority workflows require explicit top-level settings\n"
+    )
+
+
+def test_layout_reservations_denies_stale_evidence_without_releasing_reservation() -> (
+    None
+):
+    result = run_module(
+        "layout",
+        "reservations",
+        "tests/fixtures/schema_v3/valid-occupancy.yaml",
+        "tests/fixtures/reservation_operations/authority-stale.yaml",
+    )
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+    report = yaml.safe_load(result.stdout)
+    assert report["operations"][-1]["outcome"] == "denied"
+    assert report["operations"][-1]["denial"] == {
+        "kind": "occupancy-evidence",
+        "target": "main-detector",
+        "evidence-rejection": {
+            "kind": "stale",
+            "target": "main-detector",
+            "sources": ["main-source"],
+        },
+    }
+    assert report["authorities"] == []
+    assert [item["id"] for item in report["held-reservations"]] == ["reservation-1"]
+
+
+def test_layout_reservations_revokes_for_device_mismatch_and_retains_reservation() -> (
+    None
+):
+    result = run_module(
+        "layout",
+        "reservations",
+        "tests/fixtures/schema_v3/valid-occupancy.yaml",
+        "tests/fixtures/reservation_operations/authority-device-revocation.yaml",
+    )
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+    report = yaml.safe_load(result.stdout)
+    assert report["operations"][-1] == {
+        "operation": "reevaluate-authority",
+        "authority": "authority-1",
+        "route": "west-to-main",
+        "success": False,
+        "outcome": "revoked",
+        "revocation": {
+            "kind": "device-position-evidence",
+            "target": "throat-turnout",
+            "evidence-rejection": {
+                "kind": "unaligned",
+                "target": "throat-turnout",
+                "sources": ["turnout-source"],
+            },
+        },
+    }
+    assert report["authorities"][0]["status"] == "revoked"
+    assert report["authorities"][0]["revocation"]["kind"] == (
+        "device-position-evidence"
+    )
+    assert [item["id"] for item in report["held-reservations"]] == ["reservation-1"]
+
+
+def test_layout_reservations_reports_occupied_and_unknown_evidence_denials() -> None:
+    result = run_module(
+        "layout",
+        "reservations",
+        "tests/fixtures/schema_v3/valid-occupancy.yaml",
+        "tests/fixtures/reservation_operations/authority-evidence-denials.yaml",
+    )
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+    report = yaml.safe_load(result.stdout)
+    evaluations = [
+        operation
+        for operation in report["operations"]
+        if operation["operation"] == "evaluate-authority"
+    ]
+    assert [operation["outcome"] for operation in evaluations] == [
+        "denied",
+        "denied",
+    ]
+    assert [
+        operation["denial"]["evidence-rejection"]["kind"] for operation in evaluations
+    ] == ["occupied", "unknown"]
+    assert report["authorities"] == []
+
+
+def test_layout_reservations_expires_authority_without_releasing_reservation() -> None:
+    result = run_module(
+        "layout",
+        "reservations",
+        "tests/fixtures/schema_v3/valid-occupancy.yaml",
+        "tests/fixtures/reservation_operations/authority-expiry.yaml",
+    )
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+    report = yaml.safe_load(result.stdout)
+    assert report["operations"][-1]["outcome"] == "revoked"
+    assert report["operations"][-1]["revocation"] == {
+        "kind": "expiration",
+        "target": "reservation-1",
+    }
+    assert report["authorities"][0]["status"] == "revoked"
+    assert report["authorities"][0]["revocation"]["kind"] == "expiration"
+    assert [item["id"] for item in report["held-reservations"]] == ["reservation-1"]

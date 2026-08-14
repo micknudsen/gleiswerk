@@ -1,20 +1,23 @@
-# Reservation CLI workflow
+# Reservation and movement-authority CLI workflow
 
 `gleiswerk layout reservations LAYOUT OPERATIONS` evaluates one explicit,
-finite sequence of RoutePlan reservation requests against a validated
-schema-v3 layout. It compiles the layout's Route Definitions, starts a fresh
-in-memory `ReservationManager`, runs the listed operations in order, and
-writes one deterministic YAML report to standard output.
+finite sequence of reservation, logical-evidence, and movement-authority
+operations against a validated schema-v3 layout. It compiles the layout's
+Route Definitions, starts fresh in-memory reservation and authority state,
+runs the listed operations in order, and writes one deterministic YAML report
+to standard output.
 
 The command is a local inspection and workflow aid. Its state exists only for
 that command invocation. It does not persist reservations, coordinate with
-another process, command devices, observe feedback or occupancy, clear
-signals, or authorize a train to move.
+another process, connect to an evidence source, command devices, observe real
+feedback or occupancy, control signals, dispatch a train, or grant permission
+to move a real train.
 
 ## Operations document
 
-`OPERATIONS` is UTF-8 YAML with exactly one top-level `operations` list. Each
-entry has one of these exact forms:
+`OPERATIONS` is UTF-8 YAML. A reservation-only document has exactly one
+top-level `operations` list. Each reservation entry has one of these exact
+forms:
 
 ```yaml
 operations:
@@ -36,9 +39,94 @@ input errors: the command writes a diagnostic to standard error and exits one.
 The layout is also validated and its routes compiled before any operation is
 evaluated.
 
+## Authority workflow settings and time
+
+A workflow containing evidence, clock, or authority operations also requires
+an exact top-level `settings` mapping:
+
+```yaml
+settings:
+  evidence-maximum-age-seconds: 30
+  authority-maximum-validity-seconds: 60
+operations: []
+```
+
+Both values are positive integer seconds. The first bounds observation age
+when logical evidence is validated. The second bounds requested authority
+validity. The workflow starts at elapsed time `0.0`. An `advance-time`
+operation moves the deterministic evidence and monotonic authority clocks by a
+positive number of seconds:
+
+```yaml
+- operation: advance-time
+  seconds: 31
+```
+
+The clock is simulated only for this command. It does not read or alter the
+system clock.
+
+## Logical evidence operations
+
+Evidence operations replace the current observation for their named logical
+Occupancy Zone or Control Device. Available observations require a state or
+position:
+
+```yaml
+- operation: observe-occupancy
+  zone: main-detector
+  source: main-source
+  status: available
+  state: clear
+- operation: observe-device-position
+  device: throat-turnout
+  source: turnout-source
+  status: available
+  position: normal
+```
+
+`status` is `available`, `unknown`, or `faulted`. Unknown and faulted
+observations omit `state` or `position`. The CLI timestamps each observation
+at the workflow's current elapsed time and passes the complete current snapshot
+to the logical evidence validator. Missing, stale, unknown, faulted,
+contradictory, occupied, or unaligned evidence therefore fails closed in the
+core.
+
+These entries describe logical test observations; they do not read sensors or
+assert that a physical state exists.
+
+## Movement-authority operations
+
+An authority evaluation names the owner, reservation, Route Definition used
+to validate the evidence snapshot, and requested finite validity:
+
+```yaml
+- operation: evaluate-authority
+  owner: dispatcher-a
+  reservation: reservation-1
+  route: west-to-main
+  valid-for-seconds: 20
+```
+
+The report records `granted` with an opaque authority ID or `denied` with the
+core's ordered, structured explanation. A reevaluation checks an existing
+authority against the current reservations, current evidence snapshot, and
+elapsed time:
+
+```yaml
+- operation: reevaluate-authority
+  authority: authority-1
+  route: west-to-main
+```
+
+It reports `live`, `revoked`, or `not-found`. Expiration is a terminal
+`revoked` outcome whose explanation kind is `expiration`. Revocation and
+expiration do not release the reservation; a separate owner-authorized
+`release` operation remains required.
+
 ## Example
 
-The checked-in examples exercise compatible acquisition and release:
+The checked-in reservation examples exercise compatible acquisition and
+release:
 
 ```console
 gleiswerk layout reservations \
@@ -94,3 +182,26 @@ empty sequences in compact flow style, such as
 This report explains only the declared plans and the in-memory sequence. Even
 an `acquired` result is neither evidence that a device moved nor permission for
 a train to move.
+
+## Authority reference examples
+
+The checked-in authority workflows use
+`tests/fixtures/schema_v3/valid-occupancy.yaml`:
+
+- `authority-grant.yaml` grants an authority from fresh, clear, aligned
+  evidence.
+- `authority-evidence-denials.yaml` shows occupied and unknown evidence
+  denials.
+- `authority-stale.yaml` advances the deterministic clock and shows a stale
+  evidence denial.
+- `authority-device-revocation.yaml` changes a required device position and
+  revokes the authority while retaining its reservation.
+- `authority-expiry.yaml` reaches the authority's exact expiration instant and
+  revokes it while retaining its reservation.
+
+The end-to-end CLI tests execute every reference workflow. Authority reports
+add an ordered `authorities` snapshot to the existing `topology-revision`,
+`operations`, and `held-reservations` fields. Each authority includes its
+opaque ID, reservation, owner, route, exact topology revision, complete claim
+scope, elapsed issue and expiration times, terminal status, and any structured
+revocation explanation.

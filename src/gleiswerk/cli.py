@@ -3,6 +3,8 @@
 import sys
 from argparse import ArgumentParser
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from importlib.metadata import version
 from pathlib import Path
 from re import sub
@@ -10,6 +12,22 @@ from typing import cast
 
 import yaml
 
+from gleiswerk.evidence import (
+    DevicePositionEvidence,
+    EvidenceFreshnessBasis,
+    EvidenceSourceId,
+    EvidenceSourceStatus,
+    OccupancyEvidence,
+    OccupancyState,
+)
+from gleiswerk.evidence_validation import validate_evidence
+from gleiswerk.movement_authority import (
+    MovementAuthority,
+    MovementAuthorityEvaluator,
+    MovementAuthorityFailure,
+    MovementAuthorityId,
+    MovementAuthorityRequest,
+)
 from gleiswerk.route_compatibility import (
     CompatibilityAnalysisResult,
     IncompatibleControlDeviceRequirement,
@@ -33,7 +51,10 @@ from gleiswerk.route_reservations import (
 )
 from gleiswerk.topology import (
     ClaimResource,
+    ControlDeviceId,
+    DevicePositionId,
     JunctionResource,
+    OccupancyZoneId,
     ProtectionZoneResource,
     RouteDefinitionId,
     RoutePlan,
@@ -99,7 +120,8 @@ def build_parser() -> ArgumentParser:
         "file", metavar="FILE", help="Path to a layout YAML file."
     )
     reservations = layout_commands.add_parser(
-        "reservations", help="Evaluate an in-memory reservation operation sequence."
+        "reservations",
+        help="Evaluate an in-memory reservation and authority workflow.",
     )
     reservations.add_argument(
         "file", metavar="LAYOUT", help="Path to a layout YAML file."
@@ -160,7 +182,7 @@ def _evaluate_reservation_operations(layout_file: str, operations_file: str) -> 
     try:
         topology = load_topology(Path(layout_file))
         plans = compile_routes(topology)
-        operations = _load_reservation_operations(Path(operations_file), plans)
+        workflow = _load_reservation_operations(Path(operations_file), plans)
     except TopologyConfigurationError as error:
         print(error, file=sys.stderr)
         return 1
@@ -175,11 +197,99 @@ def _evaluate_reservation_operations(layout_file: str, operations_file: str) -> 
         return 1
 
     manager = ReservationManager(topology)
+    clock = _WorkflowClock()
+    evaluator = MovementAuthorityEvaluator(
+        topology.revision,
+        timedelta(seconds=workflow.authority_maximum_validity_seconds),
+        clock,
+    )
+    occupancy_evidence: dict[OccupancyZoneId, OccupancyEvidence] = {}
+    device_evidence: dict[ControlDeviceId, DevicePositionEvidence] = {}
     results: list[dict[str, object]] = []
-    for operation in operations:
-        owner = ReservationOwner(operation["owner"])
+    for operation in workflow.operations:
+        if operation["operation"] == "observe-occupancy":
+            zone = OccupancyZoneId(cast(str, operation["zone"]))
+            status = EvidenceSourceStatus(cast(str, operation["status"]))
+            state_value = operation.get("state")
+            occupancy_evidence[zone] = OccupancyEvidence(
+                zone,
+                topology.revision,
+                EvidenceSourceId(cast(str, operation["source"])),
+                status,
+                clock.datetime,
+                OccupancyState(cast(str, state_value))
+                if state_value is not None
+                else None,
+            )
+            item = dict(operation)
+            item.update(success=True, outcome="observed", **{"at-seconds": clock()})
+            results.append(item)
+            continue
+
+        if operation["operation"] == "observe-device-position":
+            device = ControlDeviceId(cast(str, operation["device"]))
+            status = EvidenceSourceStatus(cast(str, operation["status"]))
+            position = operation.get("position")
+            device_evidence[device] = DevicePositionEvidence(
+                device,
+                topology.revision,
+                EvidenceSourceId(cast(str, operation["source"])),
+                status,
+                clock.datetime,
+                DevicePositionId(cast(str, position)) if position is not None else None,
+            )
+            item = dict(operation)
+            item.update(success=True, outcome="observed", **{"at-seconds": clock()})
+            results.append(item)
+            continue
+
+        if operation["operation"] == "advance-time":
+            seconds = cast(int, operation["seconds"])
+            clock.advance(seconds)
+            results.append(
+                {
+                    "operation": "advance-time",
+                    "seconds": seconds,
+                    "success": True,
+                    "outcome": "advanced",
+                    "at-seconds": clock(),
+                }
+            )
+            continue
+
+        if operation["operation"] == "reevaluate-authority":
+            authority_id = MovementAuthorityId(cast(str, operation["authority"]))
+            route = cast(str, operation["route"])
+            evidence = validate_evidence(
+                topology,
+                plans[RouteDefinitionId(route)],
+                EvidenceFreshnessBasis(
+                    clock.datetime,
+                    timedelta(seconds=workflow.evidence_maximum_age_seconds),
+                ),
+                occupancy_evidence.values(),
+                device_evidence.values(),
+            )
+            result = evaluator.reevaluate(authority_id, manager.inspect(), evidence)
+            item = {
+                "operation": "reevaluate-authority",
+                "authority": authority_id,
+                "route": route,
+                "success": result.outcome == "live",
+                "outcome": result.outcome,
+            }
+            if result.authority is not None and result.authority.revocation is not None:
+                item["revocation"] = _authority_failure_document(
+                    result.authority.revocation
+                )
+            if result.denial_reason is not None:
+                item["denial"] = {"kind": result.denial_reason.kind}
+            results.append(item)
+            continue
+
+        owner = ReservationOwner(cast(str, operation["owner"]))
         if operation["operation"] == "acquire":
-            route = operation["route"]
+            route = cast(str, operation["route"])
             result = manager.acquire(
                 AcquireReservationRequest(owner, plans[RouteDefinitionId(route)])
             )
@@ -197,7 +307,46 @@ def _evaluate_reservation_operations(layout_file: str, operations_file: str) -> 
             results.append(item)
             continue
 
-        reservation_id = ReservationId(operation["reservation"])
+        if operation["operation"] == "evaluate-authority":
+            reservation_id = ReservationId(cast(str, operation["reservation"]))
+            route = cast(str, operation["route"])
+            valid_for_seconds = cast(int, operation["valid-for-seconds"])
+            evidence = validate_evidence(
+                topology,
+                plans[RouteDefinitionId(route)],
+                EvidenceFreshnessBasis(
+                    clock.datetime,
+                    timedelta(seconds=workflow.evidence_maximum_age_seconds),
+                ),
+                occupancy_evidence.values(),
+                device_evidence.values(),
+            )
+            result = evaluator.evaluate(
+                MovementAuthorityRequest(
+                    owner,
+                    reservation_id,
+                    evidence,
+                    timedelta(seconds=valid_for_seconds),
+                ),
+                manager.inspect(),
+            )
+            item = {
+                "operation": "evaluate-authority",
+                "owner": owner,
+                "reservation": reservation_id,
+                "route": route,
+                "valid-for-seconds": valid_for_seconds,
+                "success": result.outcome == "granted",
+                "outcome": result.outcome,
+            }
+            if result.authority is not None:
+                item["authority"] = result.authority.id
+            if result.denial_reason is not None:
+                item["denial"] = _authority_failure_document(result.denial_reason)
+            results.append(item)
+            continue
+
+        reservation_id = ReservationId(cast(str, operation["reservation"]))
         result = manager.release(ReleaseReservationRequest(owner, reservation_id))
         item = {
             "operation": "release",
@@ -211,19 +360,20 @@ def _evaluate_reservation_operations(layout_file: str, operations_file: str) -> 
         results.append(item)
 
     inspection = manager.inspect()
-    print(
-        _dump_report(
-            {
-                "topology-revision": inspection.topology_revision,
-                "operations": results,
-                "held-reservations": [
-                    _reservation_document(reservation)
-                    for reservation in inspection.reservations
-                ],
-            },
-        ),
-        end="",
-    )
+    report: dict[str, object] = {
+        "topology-revision": inspection.topology_revision,
+        "operations": results,
+        "held-reservations": [
+            _reservation_document(reservation)
+            for reservation in inspection.reservations
+        ],
+    }
+    if workflow.includes_authorities:
+        report["authorities"] = [
+            _authority_document(authority)
+            for authority in evaluator.inspect().authorities
+        ]
+    print(_dump_report(report), end="")
     return 0
 
 
@@ -231,9 +381,34 @@ class ReservationOperationsError(ValueError):
     """A reservation operation document is not within the bounded CLI schema."""
 
 
+@dataclass(frozen=True, slots=True)
+class _WorkflowDocument:
+    operations: tuple[dict[str, str | int], ...]
+    evidence_maximum_age_seconds: int = 30
+    authority_maximum_validity_seconds: int = 60
+    includes_authorities: bool = False
+
+
+class _WorkflowClock:
+    """One deterministic clock shared by evidence and authority evaluation."""
+
+    def __init__(self) -> None:
+        self._seconds = 0.0
+
+    def __call__(self) -> float:
+        return self._seconds
+
+    def advance(self, seconds: int) -> None:
+        self._seconds += seconds
+
+    @property
+    def datetime(self) -> datetime:
+        return datetime(2000, 1, 1, tzinfo=UTC) + timedelta(seconds=self._seconds)
+
+
 def _load_reservation_operations(
     file: Path, plans: Mapping[RouteDefinitionId, RoutePlan]
-) -> tuple[dict[str, str], ...]:
+) -> _WorkflowDocument:
     """Load the intentionally small, explicit reservation operation schema."""
     try:
         document: object = yaml.safe_load(file.read_text(encoding="utf-8"))
@@ -244,21 +419,48 @@ def _load_reservation_operations(
             "expected exactly one top-level 'operations' list"
         )
     mapping = cast(Mapping[object, object], document)
-    if set(mapping) != {"operations"}:
+    if set(mapping) not in ({"operations"}, {"settings", "operations"}):
         raise ReservationOperationsError(
-            "expected exactly one top-level 'operations' list"
+            "expected top-level 'operations' and optional 'settings' mappings"
+        )
+    evidence_maximum_age_seconds = 30
+    authority_maximum_validity_seconds = 60
+    has_settings = "settings" in mapping
+    includes_authorities = False
+    if has_settings:
+        settings = mapping["settings"]
+        if not isinstance(settings, Mapping):
+            raise ReservationOperationsError("settings must be a mapping")
+        settings_mapping = cast(Mapping[object, object], settings)
+        required_settings = {
+            "evidence-maximum-age-seconds",
+            "authority-maximum-validity-seconds",
+        }
+        if set(settings_mapping) != required_settings:
+            raise ReservationOperationsError(
+                "settings require exactly evidence-maximum-age-seconds and "
+                "authority-maximum-validity-seconds"
+            )
+        evidence_maximum_age_seconds = _positive_seconds(
+            settings_mapping["evidence-maximum-age-seconds"],
+            "settings.evidence-maximum-age-seconds",
+        )
+        authority_maximum_validity_seconds = _positive_seconds(
+            settings_mapping["authority-maximum-validity-seconds"],
+            "settings.authority-maximum-validity-seconds",
         )
     raw_operations = mapping["operations"]
     if not isinstance(raw_operations, list):
         raise ReservationOperationsError("operations must be a list")
 
-    operations: list[dict[str, str]] = []
+    operations: list[dict[str, str | int]] = []
     for index, raw_operation in enumerate(cast(list[object], raw_operations)):
         location = f"operations[{index}]"
         if not isinstance(raw_operation, Mapping):
             raise ReservationOperationsError(f"{location} must be a mapping")
         operation_mapping = cast(Mapping[object, object], raw_operation)
         operation = operation_mapping.get("operation")
+        value: dict[str, str | int]
         if operation == "acquire":
             required_keys = {"operation", "owner", "route"}
             route = operation_mapping.get("route")
@@ -283,10 +485,136 @@ def _load_reservation_operations(
                     f"{location}.reservation must be a string"
                 )
             value = {"operation": "release", "reservation": reservation}
-        else:
-            raise ReservationOperationsError(
-                f"{location}.operation must be 'acquire' or 'release'"
+        elif operation == "observe-occupancy":
+            status = _evidence_status(operation_mapping, location)
+            required_keys = {"operation", "zone", "source", "status"}
+            if status is EvidenceSourceStatus.AVAILABLE:
+                required_keys.add("state")
+            if set(operation_mapping) != required_keys:
+                raise ReservationOperationsError(
+                    f"{location} observe-occupancy fields do not match its status"
+                )
+            zone = _nonempty_string(operation_mapping.get("zone"), f"{location}.zone")
+            source = _nonempty_string(
+                operation_mapping.get("source"), f"{location}.source"
             )
+            value = {
+                "operation": "observe-occupancy",
+                "zone": zone,
+                "source": source,
+                "status": status.value,
+            }
+            if status is EvidenceSourceStatus.AVAILABLE:
+                state = operation_mapping.get("state")
+                if state not in {"clear", "occupied"}:
+                    raise ReservationOperationsError(
+                        f"{location}.state must be 'clear' or 'occupied'"
+                    )
+                value["state"] = cast(str, state)
+            operations.append(value)
+            includes_authorities = True
+            continue
+        elif operation == "observe-device-position":
+            status = _evidence_status(operation_mapping, location)
+            required_keys = {"operation", "device", "source", "status"}
+            if status is EvidenceSourceStatus.AVAILABLE:
+                required_keys.add("position")
+            if set(operation_mapping) != required_keys:
+                raise ReservationOperationsError(
+                    f"{location} observe-device-position fields do not match its status"
+                )
+            device = _nonempty_string(
+                operation_mapping.get("device"), f"{location}.device"
+            )
+            source = _nonempty_string(
+                operation_mapping.get("source"), f"{location}.source"
+            )
+            value = {
+                "operation": "observe-device-position",
+                "device": device,
+                "source": source,
+                "status": status.value,
+            }
+            if status is EvidenceSourceStatus.AVAILABLE:
+                value["position"] = _nonempty_string(
+                    operation_mapping.get("position"), f"{location}.position"
+                )
+            operations.append(value)
+            includes_authorities = True
+            continue
+        elif operation == "evaluate-authority":
+            required_keys = {
+                "operation",
+                "owner",
+                "reservation",
+                "route",
+                "valid-for-seconds",
+            }
+            if set(operation_mapping) != required_keys:
+                raise ReservationOperationsError(
+                    f"{location} evaluate-authority requires exactly operation, "
+                    "owner, reservation, route, and valid-for-seconds"
+                )
+            reservation = _nonempty_string(
+                operation_mapping.get("reservation"), f"{location}.reservation"
+            )
+            route = operation_mapping.get("route")
+            if not isinstance(route, str) or RouteDefinitionId(route) not in plans:
+                raise ReservationOperationsError(
+                    f"{location}.route names no compiled route"
+                )
+            value = {
+                "operation": "evaluate-authority",
+                "reservation": reservation,
+                "route": route,
+                "valid-for-seconds": _positive_seconds(
+                    operation_mapping.get("valid-for-seconds"),
+                    f"{location}.valid-for-seconds",
+                ),
+            }
+            includes_authorities = True
+        elif operation == "advance-time":
+            required_keys = {"operation", "seconds"}
+            if set(operation_mapping) != required_keys:
+                raise ReservationOperationsError(
+                    f"{location} advance-time requires exactly operation and seconds"
+                )
+            operations.append(
+                {
+                    "operation": "advance-time",
+                    "seconds": _positive_seconds(
+                        operation_mapping.get("seconds"), f"{location}.seconds"
+                    ),
+                }
+            )
+            includes_authorities = True
+            continue
+        elif operation == "reevaluate-authority":
+            required_keys = {"operation", "authority", "route"}
+            if set(operation_mapping) != required_keys:
+                raise ReservationOperationsError(
+                    f"{location} reevaluate-authority requires exactly operation, "
+                    "authority, and route"
+                )
+            authority = _nonempty_string(
+                operation_mapping.get("authority"), f"{location}.authority"
+            )
+            route = operation_mapping.get("route")
+            if not isinstance(route, str) or RouteDefinitionId(route) not in plans:
+                raise ReservationOperationsError(
+                    f"{location}.route names no compiled route"
+                )
+            operations.append(
+                {
+                    "operation": "reevaluate-authority",
+                    "authority": authority,
+                    "route": route,
+                }
+            )
+            includes_authorities = True
+            continue
+        else:
+            raise ReservationOperationsError(f"{location}.operation is not supported")
         owner = operation_mapping.get("owner")
         if not isinstance(owner, str) or not owner:
             raise ReservationOperationsError(
@@ -294,7 +622,40 @@ def _load_reservation_operations(
             )
         value["owner"] = owner
         operations.append(value)
-    return tuple(operations)
+    if includes_authorities and not has_settings:
+        raise ReservationOperationsError(
+            "authority workflows require explicit top-level settings"
+        )
+    return _WorkflowDocument(
+        tuple(operations),
+        evidence_maximum_age_seconds,
+        authority_maximum_validity_seconds,
+        includes_authorities,
+    )
+
+
+def _positive_seconds(value: object, location: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+        raise ReservationOperationsError(f"{location} must be a positive integer")
+    return value
+
+
+def _nonempty_string(value: object, location: str) -> str:
+    if not isinstance(value, str) or not value:
+        raise ReservationOperationsError(f"{location} must be a nonempty string")
+    return value
+
+
+def _evidence_status(
+    operation: Mapping[object, object], location: str
+) -> EvidenceSourceStatus:
+    status = operation.get("status")
+    try:
+        return EvidenceSourceStatus(cast(str, status))
+    except ValueError as error:
+        raise ReservationOperationsError(
+            f"{location}.status must be 'available', 'unknown', or 'faulted'"
+        ) from error
 
 
 def _reservation_document(reservation: Reservation) -> dict[str, object]:
@@ -309,6 +670,41 @@ def _reservation_document(reservation: Reservation) -> dict[str, object]:
             for requirement in reservation.requirements
         },
     }
+
+
+def _authority_document(authority: MovementAuthority) -> dict[str, object]:
+    """Serialize one authority without adding any real-world movement meaning."""
+    document: dict[str, object] = {
+        "id": authority.id,
+        "reservation": authority.reservation_id,
+        "owner": authority.owner,
+        "route": authority.route_id,
+        "topology-revision": authority.topology_revision,
+        "scope": [_claim_resource_reference(claim) for claim in authority.scope.claims],
+        "issued-at-seconds": authority.issued_at,
+        "expires-at-seconds": authority.expires_at,
+        "status": authority.status,
+    }
+    if authority.revocation is not None:
+        document["revocation"] = _authority_failure_document(authority.revocation)
+    return document
+
+
+def _authority_failure_document(
+    failure: MovementAuthorityFailure,
+) -> dict[str, object]:
+    """Serialize the core's stable authority explanation and provenance."""
+    document: dict[str, object] = {
+        "kind": failure.kind.value,
+        "target": failure.target,
+    }
+    if failure.evidence_rejection is not None:
+        document["evidence-rejection"] = {
+            "kind": failure.evidence_rejection.kind.value,
+            "target": failure.evidence_rejection.target,
+            "sources": list(failure.evidence_rejection.source_ids),
+        }
+    return document
 
 
 def _acquire_denial_document(denial: AcquireDenialReason) -> dict[str, object]:

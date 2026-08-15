@@ -39,6 +39,7 @@ nav:
       - v0.0.6: releases/v0.0.6.md
       - v0.0.7: releases/v0.0.7.md
       - v0.0.8: releases/v0.0.8.md
+      - v0.0.9: releases/v0.0.9.md
   - Development: development.md
   - Research:
       - Märklin CS3+ commissioning interface: research/marklin-cs3-commissioning-interface.md

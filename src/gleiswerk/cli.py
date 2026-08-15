@@ -12,6 +12,13 @@ from typing import cast
 
 import yaml
 
+from gleiswerk.commissioning import (
+    CommissioningConfigurationError,
+    CommissioningResult,
+    load_commissioning_expectations,
+    load_commissioning_snapshot,
+    verify_commissioning,
+)
 from gleiswerk.evidence import (
     DevicePositionEvidence,
     EvidenceFreshnessBasis,
@@ -21,6 +28,7 @@ from gleiswerk.evidence import (
     OccupancyState,
 )
 from gleiswerk.evidence_validation import EvidenceValidationResult, validate_evidence
+from gleiswerk.installation_config import load_installation_binding
 from gleiswerk.movement_authority import (
     MovementAuthority,
     MovementAuthorityEvaluator,
@@ -131,6 +139,38 @@ def build_parser() -> ArgumentParser:
         metavar="OPERATIONS",
         help="Path to a reservation operations YAML file.",
     )
+    commissioning = commands.add_parser(
+        "commissioning", help="Verify a supervised read-only hardware capture."
+    )
+    commissioning_commands = commissioning.add_subparsers(dest="commissioning_command")
+    verify = commissioning_commands.add_parser(
+        "verify", help="Verify a revision-matched CS3+ and S88 commissioning capture."
+    )
+    verify.add_argument("layout", metavar="LAYOUT", help="Path to a layout YAML file.")
+    verify.add_argument(
+        "binding", metavar="BINDING", help="Path to an Installation Binding YAML file."
+    )
+    verify.add_argument(
+        "capture",
+        metavar="CAPTURE",
+        help="Path to a read-only live hardware capture YAML file.",
+    )
+    verify.add_argument(
+        "expectations",
+        metavar="EXPECTATIONS",
+        help="Path to S88 occupancy expectations YAML file.",
+    )
+    verify.add_argument(
+        "--live-hardware",
+        action="store_true",
+        help="Required acknowledgement that CAPTURE was collected from the live installation.",
+    )
+    verify.add_argument(
+        "--maximum-age-seconds",
+        type=int,
+        default=30,
+        help="Maximum permitted age for CAPTURE (default: 30).",
+    )
     return parser
 
 
@@ -143,7 +183,58 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _report_layout_compatibility(arguments.file)
     if arguments.command == "layout" and arguments.layout_command == "reservations":
         return _evaluate_reservation_operations(arguments.file, arguments.operations)
+    if (
+        arguments.command == "commissioning"
+        and arguments.commissioning_command == "verify"
+    ):
+        return _verify_commissioning(
+            arguments.layout,
+            arguments.binding,
+            arguments.capture,
+            arguments.expectations,
+            arguments.live_hardware,
+            arguments.maximum_age_seconds,
+        )
     return 0
+
+
+def _verify_commissioning(
+    layout_file: str,
+    binding_file: str,
+    capture_file: str,
+    expectations_file: str,
+    live_hardware: bool,
+    maximum_age_seconds: int,
+) -> int:
+    """Verify one opt-in, read-only hardware commissioning capture."""
+    if not live_hardware:
+        print(
+            "ERROR --live-hardware is required for commissioning verification",
+            file=sys.stderr,
+        )
+        return 2
+    if maximum_age_seconds < 0:
+        print("ERROR --maximum-age-seconds must not be negative", file=sys.stderr)
+        return 2
+    try:
+        topology = load_topology(Path(layout_file))
+        binding = load_installation_binding(Path(binding_file), topology)
+        snapshot = load_commissioning_snapshot(Path(capture_file))
+        expectations = load_commissioning_expectations(Path(expectations_file))
+        result = verify_commissioning(
+            topology,
+            binding,
+            snapshot,
+            expectations,
+            evaluated_at=datetime.now(UTC),
+            maximum_age=timedelta(seconds=maximum_age_seconds),
+        )
+    except (TopologyConfigurationError, CommissioningConfigurationError) as error:
+        print(f"ERROR {error}", file=sys.stderr)
+        return 1
+    document = _commissioning_document(result)
+    print(_dump_report(document), end="")
+    return 0 if result.is_usable else 1
 
 
 def _validate_layout(file: str) -> int:
@@ -740,6 +831,20 @@ def _evidence_validation_document(
                 "sources": list(item.source_ids),
             }
             for item in result.rejections
+        ],
+    }
+
+
+def _commissioning_document(result: CommissioningResult) -> dict[str, object]:
+    """Serialize a read-only commissioning result without claiming physical proof."""
+    return {
+        "topology-revision": result.topology_revision,
+        "firmware-version": result.firmware_version,
+        "captured-at": result.captured_at.isoformat(),
+        "success": result.is_usable,
+        "failures": [
+            {"kind": item.kind, "target": item.target, "detail": item.detail}
+            for item in result.failures
         ],
     }
 

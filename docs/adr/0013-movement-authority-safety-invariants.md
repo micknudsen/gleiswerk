@@ -43,7 +43,11 @@ following are true at that decision point:
    missing, stale, partial, faulted, or contradictory evidence is not clear.
 4. Every Control Device required by the RoutePlan has complete, fresh,
    non-faulted, non-contradictory position evidence for its required logical
-   position. A command request or an accepted command is not position evidence.
+   position. This is normally sensor-observed evidence. A revision-matched
+   Installation Binding may instead declare the explicitly bounded
+   `assumed-after-delay` policy defined by ADR 0016; its command
+   acknowledgement and completed delay are an operational assumption, not a
+   physical observation.
 5. The requested expiration is in the future and no configured bound on the
    authority duration is exceeded.
 
@@ -82,9 +86,13 @@ incompatible route while the physical situation remains uncertain.
 
 Commands request a Control Device action; observations report detected device
 position or occupancy. Neither is the other, and neither alone is a
-`MovementAuthority`. A reservation is an exclusive runtime claim; an authority
-is a time-bounded safety decision that depends on that claim and current
-evidence.
+`MovementAuthority`. ADR 0016 permits one explicit exception to the observation
+boundary: a revision-matched `assumed-after-delay` binding can derive a bounded,
+fault-sensitive position assertion from a command acknowledgement. It remains
+visible as an assumption and is never presented as sensor evidence. A
+reservation is an exclusive runtime claim; an authority is a time-bounded
+safety decision that depends on that claim and current evidence or declared
+assumptions.
 
 Within this bounded domain contract, an authority is not a signal aspect and
 does not command a signal. It also does not model a train, control train

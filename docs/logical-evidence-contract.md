@@ -18,6 +18,13 @@ must carry either `clear` or `occupied`; available device evidence must carry a
 declared logical position. Unknown and faulted evidence carries neither. Thus
 an absent or unhealthy source cannot be represented as a known-safe state.
 
+Device evidence normally represents an independent position observation. A
+revision-matched Installation Binding may instead declare
+`assumed-after-delay`. Under ADR 0016, a command adapter may then issue a
+fresh, fault-sensitive, bounded position assertion after an acknowledged
+command and the declared delay. Its provenance must identify it as an
+assumption; it is not sensor evidence or proof that the turnout moved.
+
 ## Freshness and outcomes
 
 `EvidenceFreshnessBasis` supplies the evaluation instant and maximum accepted
@@ -34,8 +41,10 @@ device.
 
 ## Safety boundary
 
-An observation is evidence, not a command outcome. Missing, revision-mismatched,
-unknown, stale, faulted, occupied, or unaligned evidence is not clear evidence
+An observation is evidence, not a command outcome. The only permitted
+position-assumption exception is ADR 0016's explicit, revision-matched
+`assumed-after-delay` policy. Missing, revision-mismatched, unknown, stale,
+faulted, occupied, or unaligned evidence or assumptions are not clear evidence
 and must fail closed for a later movement-authority decision.
 
 ## Topology validation

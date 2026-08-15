@@ -27,6 +27,8 @@ gleiswerk --version
 gleiswerk layout validate layout.yaml
 gleiswerk layout compatibility layout.yaml
 gleiswerk layout reservations layout.yaml operations.yaml
+gleiswerk commissioning verify layout.yaml installation-binding.yaml \
+  cs3-capture.yaml occupancy-expectations.yaml --live-hardware
 ```
 
 The `layout reservations` workflow can evaluate reservations, logical
@@ -35,6 +37,11 @@ document. See the [reservation and movement-authority CLI workflow]
 (docs/reservation-cli-workflow.md) and [movement-authority contract]
 (docs/movement-authority-contract.md) for its evidence requirements and
 explicit safety boundary.
+
+The opt-in [hardware commissioning workflow](docs/commissioning-cli-workflow.md)
+checks a supervised, read-only CS3+ and S88 capture against a revision-matched
+Installation Binding. It does not command hardware or grant permission for a
+real train to move.
 
 The package can also be invoked as a Python module:
 

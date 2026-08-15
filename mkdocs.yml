@@ -28,6 +28,7 @@ nav:
   - Logical evidence contract: logical-evidence-contract.md
   - Movement-authority contract: movement-authority-contract.md
   - Reservation CLI workflow: reservation-cli-workflow.md
+  - Hardware commissioning: commissioning-cli-workflow.md
   - Release notes:
       - Guide: releases/README.md
       - v0.0.1: releases/v0.0.1.md
@@ -39,6 +40,8 @@ nav:
       - v0.0.7: releases/v0.0.7.md
       - v0.0.8: releases/v0.0.8.md
   - Development: development.md
+  - Research:
+      - Märklin CS3+ commissioning interface: research/marklin-cs3-commissioning-interface.md
   - Decisions:
       - Overview: adr/README.md
       - Runtime and platform support: adr/0001-runtime-and-platform-support.md
@@ -55,3 +58,5 @@ nav:
       - Topology-bound reservation managers: adr/0012-topology-bound-reservation-managers.md
       - Movement-authority safety invariants: adr/0013-movement-authority-safety-invariants.md
       - First feedback controller and transport: adr/0014-first-feedback-controller-and-transport.md
+      - Märklin feedback binding and evidence trust contract: adr/0015-marklin-feedback-binding-and-evidence-trust.md
+      - Command-acknowledged turnout-position assumptions: adr/0016-command-acknowledged-turnout-assumptions.md

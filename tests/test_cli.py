@@ -26,6 +26,24 @@ def test_help_succeeds() -> None:
     assert result.stderr == ""
 
 
+def test_commissioning_requires_explicit_live_hardware_acknowledgement() -> None:
+    result = run_module(
+        "commissioning",
+        "verify",
+        "layout.yaml",
+        "binding.yaml",
+        "capture.yaml",
+        "expectations.yaml",
+    )
+
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert (
+        result.stderr
+        == "ERROR --live-hardware is required for commissioning verification\n"
+    )
+
+
 def test_version_reports_distribution_version() -> None:
     result = run_module("--version")
 

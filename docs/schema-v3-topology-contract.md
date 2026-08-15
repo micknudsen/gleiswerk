@@ -357,7 +357,9 @@ mapping. Its `kind` is one of:
 
 All declared channels are globally unique. `sensor` reports an observed
 position. `assumed-after-delay` records an explicitly configured operational
-assumption; it is not an observation. `unknown` cannot support a position
+assumption; it is not an observation. Under ADR 0016 it may support the logical
+position prerequisite only after a configuration-matched command
+acknowledgement and its declared delay. `unknown` cannot support a position
 claim. A stale, incomplete, unknown-object, or conflicting binding is rejected
 before an adapter can use it.
 

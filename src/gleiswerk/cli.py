@@ -20,7 +20,7 @@ from gleiswerk.evidence import (
     OccupancyEvidence,
     OccupancyState,
 )
-from gleiswerk.evidence_validation import validate_evidence
+from gleiswerk.evidence_validation import EvidenceValidationResult, validate_evidence
 from gleiswerk.movement_authority import (
     MovementAuthority,
     MovementAuthorityEvaluator,
@@ -277,6 +277,7 @@ def _evaluate_reservation_operations(layout_file: str, operations_file: str) -> 
                 "route": route,
                 "success": result.outcome == "live",
                 "outcome": result.outcome,
+                "evidence": _evidence_validation_document(evidence),
             }
             if result.authority is not None and result.authority.revocation is not None:
                 item["revocation"] = _authority_failure_document(
@@ -338,6 +339,7 @@ def _evaluate_reservation_operations(layout_file: str, operations_file: str) -> 
                 "valid-for-seconds": valid_for_seconds,
                 "success": result.outcome == "granted",
                 "outcome": result.outcome,
+                "evidence": _evidence_validation_document(evidence),
             }
             if result.authority is not None:
                 item["authority"] = result.authority.id
@@ -705,6 +707,41 @@ def _authority_failure_document(
             "sources": list(failure.evidence_rejection.source_ids),
         }
     return document
+
+
+def _evidence_validation_document(
+    result: EvidenceValidationResult,
+) -> dict[str, object]:
+    """Serialize read-only evidence status with logical source provenance."""
+    return {
+        "topology-revision": result.topology_revision,
+        "route": result.plan_route_id,
+        "occupancy": [
+            {
+                "zone": item.zone_id,
+                "source": item.source_id,
+                "outcome": item.outcome.value,
+            }
+            for item in result.occupancy_results
+        ],
+        "device-positions": [
+            {
+                "device": item.device_id,
+                "required-position": item.required_position_id,
+                "source": item.source_id,
+                "outcome": item.outcome.value,
+            }
+            for item in result.device_position_results
+        ],
+        "rejections": [
+            {
+                "kind": item.kind.value,
+                "target": item.target,
+                "sources": list(item.source_ids),
+            }
+            for item in result.rejections
+        ],
+    }
 
 
 def _acquire_denial_document(denial: AcquireDenialReason) -> dict[str, object]:

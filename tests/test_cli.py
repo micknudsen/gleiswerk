@@ -266,6 +266,27 @@ def test_layout_reservations_grants_authority_for_fresh_clear_evidence() -> None
         "success": True,
         "outcome": "granted",
         "authority": "authority-1",
+        "evidence": {
+            "topology-revision": report["topology-revision"],
+            "route": "west-to-main",
+            "occupancy": [
+                {"zone": "main-detector", "source": "main-source", "outcome": "clear"},
+                {
+                    "zone": "throat-detector",
+                    "source": "throat-source",
+                    "outcome": "clear",
+                },
+            ],
+            "device-positions": [
+                {
+                    "device": "throat-turnout",
+                    "required-position": "normal",
+                    "source": "turnout-source",
+                    "outcome": "aligned",
+                }
+            ],
+            "rejections": [],
+        },
     }
     assert report["authorities"] == [
         {
@@ -344,6 +365,14 @@ def test_layout_reservations_denies_stale_evidence_without_releasing_reservation
             "sources": ["main-source"],
         },
     }
+    assert report["operations"][-1]["evidence"]["occupancy"] == [
+        {"zone": "main-detector", "source": "main-source", "outcome": "stale"},
+        {
+            "zone": "throat-detector",
+            "source": "throat-source",
+            "outcome": "stale",
+        },
+    ]
     assert report["authorities"] == []
     assert [item["id"] for item in report["held-reservations"]] == ["reservation-1"]
 
@@ -375,6 +404,33 @@ def test_layout_reservations_revokes_for_device_mismatch_and_retains_reservation
                 "target": "throat-turnout",
                 "sources": ["turnout-source"],
             },
+        },
+        "evidence": {
+            "topology-revision": report["topology-revision"],
+            "route": "west-to-main",
+            "occupancy": [
+                {"zone": "main-detector", "source": "main-source", "outcome": "clear"},
+                {
+                    "zone": "throat-detector",
+                    "source": "throat-source",
+                    "outcome": "clear",
+                },
+            ],
+            "device-positions": [
+                {
+                    "device": "throat-turnout",
+                    "required-position": "normal",
+                    "source": "turnout-source",
+                    "outcome": "unaligned",
+                }
+            ],
+            "rejections": [
+                {
+                    "kind": "unaligned",
+                    "target": "throat-turnout",
+                    "sources": ["turnout-source"],
+                }
+            ],
         },
     }
     assert report["authorities"][0]["status"] == "revoked"

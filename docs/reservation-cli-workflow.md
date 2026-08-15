@@ -108,7 +108,12 @@ to validate the evidence snapshot, and requested finite validity:
 ```
 
 The report records `granted` with an opaque authority ID or `denied` with the
-core's ordered, structured explanation. A reevaluation checks an existing
+core's ordered, structured explanation. Each authority evaluation and
+reevaluation also includes a read-only `evidence` status document: the logical
+Occupancy Zones and Control Devices considered, each source's provenance and
+qualified outcome, plus every rejection and its sources. This makes evidence
+from an adapter inspectable without letting a CLI report establish physical
+truth or control any hardware. A reevaluation checks an existing
 authority against the current reservations, current evidence snapshot, and
 elapsed time:
 

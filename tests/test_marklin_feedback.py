@@ -1,15 +1,39 @@
 """Protocol-emulator tests for the fail-closed Märklin S88 adapter."""
 
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
-from gleiswerk.evidence import EvidenceSourceId, EvidenceSourceStatus, OccupancyState
+from gleiswerk.evidence import (
+    DevicePositionEvidence,
+    EvidenceFreshnessBasis,
+    EvidenceSourceId,
+    EvidenceSourceStatus,
+    OccupancyState,
+)
+from gleiswerk.evidence_validation import validate_evidence
 from gleiswerk.marklin_feedback import (
     MarklinCs3S88Adapter,
     MarklinFeedbackBinding,
     S88Contact,
     S88OccupancySource,
 )
-from gleiswerk.topology import OccupancyZoneId
+from gleiswerk.movement_authority import (
+    MovementAuthorityEvaluator,
+    MovementAuthorityRequest,
+)
+from gleiswerk.route_compiler import compile_routes
+from gleiswerk.route_reservations import (
+    AcquireReservationRequest,
+    ReservationManager,
+    ReservationOwner,
+)
+from gleiswerk.topology import (
+    ControlDeviceId,
+    DevicePositionId,
+    OccupancyZoneId,
+    RouteDefinitionId,
+)
+from gleiswerk.topology_config import load_topology
 
 NOW = datetime(2026, 8, 14, 12, tzinfo=UTC)
 ONE = S88Contact(1, 1, 1)
@@ -134,3 +158,79 @@ def test_only_a_complete_poll_can_recover_a_fault_and_unmapped_input_is_ignored(
 
     sut.receive_poll({ONE: True, TWO: False}, NOW)
     assert states(sut)[0] == (EvidenceSourceStatus.AVAILABLE, OccupancyState.OCCUPIED)
+
+
+def test_adapter_evidence_drives_read_only_authority_evaluation() -> None:
+    topology = load_topology(Path("tests/fixtures/schema_v3/valid-occupancy.yaml"))
+    plan = compile_routes(topology)[RouteDefinitionId("west-to-main")]
+    binding = MarklinFeedbackBinding(
+        topology.revision,
+        {
+            ONE: S88OccupancySource(
+                EvidenceSourceId("throat-s88"),
+                OccupancyZoneId("throat-detector"),
+                ONE,
+            ),
+            TWO: S88OccupancySource(
+                EvidenceSourceId("main-s88"), OccupancyZoneId("main-detector"), TWO
+            ),
+        },
+    )
+    adapter = MarklinCs3S88Adapter(binding, clock=lambda: NOW)
+    reservations = ReservationManager(topology)
+    reservation = reservations.acquire(
+        AcquireReservationRequest(ReservationOwner("dispatcher"), plan)
+    ).reservation
+    assert reservation is not None
+    evaluator = MovementAuthorityEvaluator(
+        topology.revision, timedelta(seconds=30), lambda: 0
+    )
+    position = DevicePositionEvidence(
+        ControlDeviceId("throat-turnout"),
+        topology.revision,
+        EvidenceSourceId("turnout-sensor"),
+        EvidenceSourceStatus.AVAILABLE,
+        NOW,
+        DevicePositionId("normal"),
+    )
+
+    adapter.receive_poll({ONE: False, TWO: False}, NOW)
+    evidence = validate_evidence(
+        topology,
+        plan,
+        EvidenceFreshnessBasis(NOW, timedelta(seconds=30)),
+        adapter.snapshot(),
+        (position,),
+    )
+    granted = evaluator.evaluate(
+        MovementAuthorityRequest(
+            ReservationOwner("dispatcher"),
+            reservation.id,
+            evidence,
+            timedelta(seconds=20),
+        ),
+        reservations.inspect(),
+    )
+
+    assert granted.outcome == "granted"
+    assert granted.authority is not None
+    adapter.receive_event(ONE, True, NOW)
+    rejected = validate_evidence(
+        topology,
+        plan,
+        EvidenceFreshnessBasis(NOW, timedelta(seconds=30)),
+        adapter.snapshot(),
+        (position,),
+    )
+    revoked = evaluator.reevaluate(
+        granted.authority.id, reservations.inspect(), rejected
+    )
+
+    assert [(item.kind.value, item.source_ids) for item in rejected.rejections] == [
+        ("occupied", ("throat-s88",))
+    ]
+    assert revoked.outcome == "revoked"
+    assert revoked.authority is not None
+    assert revoked.authority.revocation is not None
+    assert revoked.authority.revocation.evidence_rejection is not None
+    assert revoked.authority.revocation.evidence_rejection.source_ids == ("throat-s88",)

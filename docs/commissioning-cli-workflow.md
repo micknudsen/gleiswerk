@@ -1,6 +1,7 @@
 # Hardware commissioning verification
 
-`gleiswerk commissioning verify` checks one supervised, read-only capture from
+`gleiswerk commissioning capture` collects one supervised, read-only capture;
+`gleiswerk commissioning verify` then checks it from
 the live installation. It does not open a controller connection, command a
 turnout, clear a signal, or authorize a train to move. A firmware-pinned CS3+
 capture adapter collects the controller configuration and S88 state; the CLI
@@ -11,6 +12,9 @@ and prevents a capture from being mistaken for an ordinary development or CI
 test. Emulator tests remain authoritative for CI.
 
 ```console
+gleiswerk commissioning capture layout.yaml installation-binding.yaml \
+  http://192.168.0.100 "2.6.1 (Build 3)" --live-hardware > cs3-capture.yaml
+
 gleiswerk commissioning verify layout.yaml installation-binding.yaml \
   cs3-capture.yaml occupancy-expectations.yaml --live-hardware
 ```
@@ -31,6 +35,11 @@ the firmware version whose response shape it understands.
 topology-revision: sha256:<validated-topology-fingerprint>
 captured-at: 2026-08-15T12:00:00Z
 firmware-version: <commissioned-CS3-firmware-version>
+model: marklin-cs3-plus-60216
+endpoint: http://192.168.0.100
+acquisition-method: marklin-cs3-webapp-json
+acquisition-version: "1"
+configuration-snapshot-hash: sha256:<canonical-source-snapshot-hash>
 command-channels:
   west-throat-turnout: dcc-accessory-12
 feedback-channels:
@@ -46,9 +55,14 @@ independent sensor-position binding. `occupancy-states` contains the S88 state
 for each tested occupancy channel. Missing, ambiguous, malformed, stale, or
 revision-mismatched data fails closed.
 
-Märklin does not document a stable machine API for this capture. The adapter
-therefore remains firmware-pinned and must reject interface drift; see the
-[research note](research/marklin-cs3-commissioning-interface.md).
+The first adapter is pinned to CS3+ model 60216 and the characterized
+firmware. It makes only three HTTP `GET` requests—`/app/api/devs`,
+`/app/api/mags`, and `/app/api/mags/state`—and rejects redirects, unknown
+firmware, non-DCC command mappings, incomplete S88 state, duplicate addresses,
+or changed response shapes. It has no command implementation. Märklin does not
+document this as a stable machine API, so a firmware update must be
+characterized and released before it can be used; see the [research
+note](research/marklin-cs3-commissioning-interface.md).
 
 ## Supervised S88 expectation file
 

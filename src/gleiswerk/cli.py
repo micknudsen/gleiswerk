@@ -15,6 +15,7 @@ import yaml
 from gleiswerk.commissioning import (
     CommissioningConfigurationError,
     CommissioningResult,
+    CommissioningSnapshot,
     load_commissioning_expectations,
     load_commissioning_snapshot,
     verify_commissioning,
@@ -29,6 +30,10 @@ from gleiswerk.evidence import (
 )
 from gleiswerk.evidence_validation import EvidenceValidationResult, validate_evidence
 from gleiswerk.installation_config import load_installation_binding
+from gleiswerk.marklin_cs3_commissioning import (
+    Cs3CommissioningError,
+    MarklinCs3CommissioningAdapter,
+)
 from gleiswerk.movement_authority import (
     MovementAuthority,
     MovementAuthorityEvaluator,
@@ -143,6 +148,24 @@ def build_parser() -> ArgumentParser:
         "commissioning", help="Verify a supervised read-only hardware capture."
     )
     commissioning_commands = commissioning.add_subparsers(dest="commissioning_command")
+    capture = commissioning_commands.add_parser(
+        "capture", help="Collect one read-only, firmware-pinned CS3+ capture."
+    )
+    capture.add_argument("layout", metavar="LAYOUT", help="Path to a layout YAML file.")
+    capture.add_argument(
+        "binding", metavar="BINDING", help="Path to an Installation Binding YAML file."
+    )
+    capture.add_argument("endpoint", metavar="ENDPOINT", help="CS3+ HTTP origin.")
+    capture.add_argument(
+        "firmware_version",
+        metavar="FIRMWARE_VERSION",
+        help="Exact commissioned CS3+ software version.",
+    )
+    capture.add_argument(
+        "--live-hardware",
+        action="store_true",
+        help="Required acknowledgement before contacting the CS3+.",
+    )
     verify = commissioning_commands.add_parser(
         "verify", help="Verify a revision-matched CS3+ and S88 commissioning capture."
     )
@@ -185,6 +208,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _evaluate_reservation_operations(arguments.file, arguments.operations)
     if (
         arguments.command == "commissioning"
+        and arguments.commissioning_command == "capture"
+    ):
+        return _capture_commissioning(
+            arguments.layout,
+            arguments.binding,
+            arguments.endpoint,
+            arguments.firmware_version,
+            arguments.live_hardware,
+        )
+    if (
+        arguments.command == "commissioning"
         and arguments.commissioning_command == "verify"
     ):
         return _verify_commissioning(
@@ -195,6 +229,33 @@ def main(argv: Sequence[str] | None = None) -> int:
             arguments.live_hardware,
             arguments.maximum_age_seconds,
         )
+    return 0
+
+
+def _capture_commissioning(
+    layout_file: str,
+    binding_file: str,
+    endpoint: str,
+    firmware_version: str,
+    live_hardware: bool,
+) -> int:
+    """Collect one opt-in capture with GET-only CS3+ requests."""
+    if not live_hardware:
+        print(
+            "ERROR --live-hardware is required for commissioning capture",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        topology = load_topology(Path(layout_file))
+        binding = load_installation_binding(Path(binding_file), topology)
+        snapshot = MarklinCs3CommissioningAdapter(endpoint, firmware_version).acquire(
+            topology.revision, binding
+        )
+    except (TopologyConfigurationError, Cs3CommissioningError) as error:
+        print(f"ERROR {error}", file=sys.stderr)
+        return 1
+    print(_dump_report(_commissioning_snapshot_document(snapshot)), end="")
     return 0
 
 
@@ -846,6 +907,27 @@ def _commissioning_document(result: CommissioningResult) -> dict[str, object]:
             {"kind": item.kind, "target": item.target, "detail": item.detail}
             for item in result.failures
         ],
+    }
+
+
+def _commissioning_snapshot_document(
+    snapshot: CommissioningSnapshot,
+) -> dict[str, object]:
+    """Serialize a captured controller observation for later verification."""
+    return {
+        "topology-revision": snapshot.topology_revision,
+        "captured-at": snapshot.captured_at.isoformat(),
+        "firmware-version": snapshot.firmware_version,
+        "model": snapshot.model,
+        "endpoint": snapshot.endpoint,
+        "acquisition-method": snapshot.acquisition_method,
+        "acquisition-version": snapshot.acquisition_version,
+        "configuration-snapshot-hash": snapshot.configuration_snapshot_hash,
+        "command-channels": dict(snapshot.command_channels),
+        "feedback-channels": dict(snapshot.feedback_channels),
+        "occupancy-states": {
+            channel: state.value for channel, state in snapshot.occupancy_states.items()
+        },
     }
 
 

@@ -44,6 +44,25 @@ def test_commissioning_requires_explicit_live_hardware_acknowledgement() -> None
     )
 
 
+def test_commissioning_capture_requires_explicit_live_hardware_acknowledgement() -> (
+    None
+):
+    result = run_module(
+        "commissioning",
+        "capture",
+        "layout.yaml",
+        "binding.yaml",
+        "http://192.0.2.17",
+        "2.6.1 (Build 3)",
+    )
+
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert (
+        result.stderr == "ERROR --live-hardware is required for commissioning capture\n"
+    )
+
+
 def test_version_reports_distribution_version() -> None:
     result = run_module("--version")
 

@@ -1,0 +1,15 @@
+{
+  "devs": [
+    {"uid": "0x100", "artikelnr": "60216", "typname": "Central Station 3 plus"},
+    {"uid": "0x101", "typ": "65504", "csDeviceInfo": "product#3DCentral#20Station#203#20plus;softwareVersion#3D2#2E6#2E1#20#28Build#203#29"}
+  ],
+  "mags": [
+    {"internname": "A#2E1", "id": 4096, "address": 12, "typ": "linksweiche", "prot": "dcc"},
+    {"internname": "K1", "id": 73729, "typ": "s88kontaktgleis", "s88kennung": 1, "s88kontakt": 1},
+    {"internname": "K17", "id": 73745, "typ": "s88kontaktgleis", "s88kennung": 1, "s88kontakt": 17}
+  ],
+  "mags/state": [
+    [73729, {"state": "0", "oldstate": null}],
+    [73745, {"state": "1", "oldstate": "0"}]
+  ]
+}

@@ -34,6 +34,11 @@ class CommissioningSnapshot:
     command_channels: Mapping[str, str]
     feedback_channels: Mapping[str, str]
     occupancy_states: Mapping[str, OccupancyState]
+    model: str = "unknown"
+    endpoint: str = "unknown"
+    acquisition_method: str = "unknown"
+    acquisition_version: str = "unknown"
+    configuration_snapshot_hash: str = "unknown"
 
     def __post_init__(self) -> None:
         if not self.topology_revision or not self.firmware_version:
@@ -42,6 +47,19 @@ class CommissioningSnapshot:
             )
         if self.captured_at.tzinfo is None or self.captured_at.utcoffset() is None:
             raise CommissioningConfigurationError("capture time must be timezone-aware")
+        if not all(
+            value
+            for value in (
+                self.model,
+                self.endpoint,
+                self.acquisition_method,
+                self.acquisition_version,
+                self.configuration_snapshot_hash,
+            )
+        ):
+            raise CommissioningConfigurationError(
+                "capture provenance fields must be nonempty"
+            )
         object.__setattr__(
             self, "command_channels", MappingProxyType(dict(self.command_channels))
         )
@@ -210,6 +228,11 @@ def load_commissioning_snapshot(path: Path) -> CommissioningSnapshot:
             "command-channels",
             "feedback-channels",
             "occupancy-states",
+            "model",
+            "endpoint",
+            "acquisition-method",
+            "acquisition-version",
+            "configuration-snapshot-hash",
         },
         "hardware capture",
     )
@@ -225,6 +248,11 @@ def load_commissioning_snapshot(path: Path) -> CommissioningSnapshot:
                 data, "occupancy-states", "hardware capture"
             ).items()
         },
+        _string(data, "model", "hardware capture"),
+        _string(data, "endpoint", "hardware capture"),
+        _string(data, "acquisition-method", "hardware capture"),
+        _string(data, "acquisition-version", "hardware capture"),
+        _string(data, "configuration-snapshot-hash", "hardware capture"),
     )
 
 

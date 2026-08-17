@@ -64,3 +64,22 @@ The returned `EvidenceValidationResult` carries qualified observations and
 stable `EvidenceRejection` values with logical targets and source IDs. Its
 `is_usable` property is true only when no prerequisite was rejected. Neither
 the validator nor its result knows controller addresses or commands devices.
+
+## Runtime ingestion boundary
+
+A future runtime Evidence Source supplies these immutable values through a
+controller-independent port. It owns transport receipt, source health, session
+ordering, and recovery; the evidence validator remains a pure evaluator of a
+supplied snapshot. Startup, reconnect, missing input, malformed input,
+duplicate logical targets, and input whose ordering cannot be established are
+unavailable evidence, never the last known clear state. Only a complete,
+revision-matched baseline can make a new Evidence Session available after
+startup or fault.
+
+The service records logical source identity, topology revision, session
+identity, receipt/observation time, health, and a stable fault reason in its
+diagnostics. It translates controller-specific sequence numbers and protocol
+errors before the port; the core never receives a CS3 address, CAN frame, UDP
+datagram, or protocol ordering token. The simulator and protocol emulators
+exercise this same port using deterministic clocks and explicitly supplied
+snapshots. ADR 0017 defines the lifecycle and fault contract in full.

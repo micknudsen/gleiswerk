@@ -98,3 +98,19 @@ A validated, revision-matched artifact mapping logical Control Devices and
 observations to controller-specific channels while keeping those addresses
 outside the topology model. It declares each Control Device's position evidence.
 _Avoid_: hardware addresses in topology objects.
+
+**Evidence Source**:
+A stable logical producer of observations for one or more Occupancy Zones or
+Control Devices. Its identity, topology revision, health, and observation time
+form the provenance required to assess evidence; a controller endpoint or
+protocol address is not an Evidence Source.
+_Avoid_: treating an available connection as evidence, or using a controller
+address as the logical source identity.
+
+**Evidence Session**:
+One supervised, revision-matched runtime interval for an Evidence Source. It
+begins unknown, becomes available only after a complete baseline, and ends in
+a fault on lost, malformed, ambiguous, or unordered input. A new complete
+baseline is required to recover a fault.
+_Avoid_: carrying evidence from a prior connection or partial poll into a new
+session.

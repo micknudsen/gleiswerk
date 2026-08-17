@@ -62,3 +62,4 @@ nav:
       - First feedback controller and transport: adr/0014-first-feedback-controller-and-transport.md
       - Märklin feedback binding and evidence trust contract: adr/0015-marklin-feedback-binding-and-evidence-trust.md
       - Command-acknowledged turnout-position assumptions: adr/0016-command-acknowledged-turnout-assumptions.md
+      - Runtime evidence-ingestion boundary: adr/0017-runtime-evidence-ingestion-boundary.md

@@ -13,6 +13,7 @@ from gleiswerk.evidence import (
 from gleiswerk.evidence_validation import validate_evidence
 from gleiswerk.marklin_feedback import (
     MarklinCs3S88Adapter,
+    MarklinCs3S88RuntimeBridge,
     MarklinFeedbackBinding,
     S88Contact,
     S88OccupancySource,
@@ -27,6 +28,7 @@ from gleiswerk.route_reservations import (
     ReservationManager,
     ReservationOwner,
 )
+from gleiswerk.runtime_evidence import RuntimeEvidenceService, RuntimeEvidenceTarget
 from gleiswerk.topology import (
     ControlDeviceId,
     DevicePositionId,
@@ -234,3 +236,27 @@ def test_adapter_evidence_drives_read_only_authority_evaluation() -> None:
     assert revoked.authority.revocation is not None
     assert revoked.authority.revocation.evidence_rejection is not None
     assert revoked.authority.revocation.evidence_rejection.source_ids == ("throat-s88",)
+
+
+def test_runtime_bridge_keeps_cs3_ordering_at_the_adapter_edge() -> None:
+    translator = adapter()
+    service = RuntimeEvidenceService(
+        translator.binding.topology_revision,
+        tuple(
+            RuntimeEvidenceTarget(source.zone_id, source.source_id)
+            for source in translator.binding.sources.values()
+        ),
+        clock=lambda: NOW,
+    )
+    bridge = MarklinCs3S88RuntimeBridge(translator, service)
+
+    bridge.receive_poll({ONE: False, TWO: False}, NOW)
+    bridge.receive_event(ONE, True, 1, NOW + timedelta(seconds=1))
+
+    assert service.snapshot()[0].state is OccupancyState.OCCUPIED
+    bridge.connection_lost(received_at=NOW + timedelta(seconds=2))
+    assert states(translator) == [(EvidenceSourceStatus.FAULTED, None)] * 2
+    assert [item.source_status for item in service.snapshot()] == [
+        EvidenceSourceStatus.FAULTED,
+        EvidenceSourceStatus.FAULTED,
+    ]

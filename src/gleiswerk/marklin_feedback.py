@@ -18,6 +18,7 @@ from gleiswerk.evidence import (
     OccupancyEvidence,
     OccupancyState,
 )
+from gleiswerk.runtime_evidence import RuntimeEvidenceService
 from gleiswerk.topology import OccupancyZoneId
 
 
@@ -91,6 +92,11 @@ class MarklinCs3S88Adapter:
         init=False, default_factory=lambda: dict[S88Contact, OccupancyEvidence]()
     )
     diagnostics: list[str] = field(init=False, default_factory=lambda: list[str]())
+
+    @property
+    def status(self) -> EvidenceSourceStatus:
+        """Return the adapter's current logical health state."""
+        return self._status
 
     def snapshot(self) -> tuple[OccupancyEvidence, ...]:
         """Return one deterministic logical evidence value for every binding source."""
@@ -207,6 +213,62 @@ class MarklinCs3S88Adapter:
         if now.tzinfo is None or now.utcoffset() is None:
             raise ValueError("S88 receipt time must be timezone-aware")
         return now
+
+
+@dataclass(slots=True)
+class MarklinCs3S88RuntimeBridge:
+    """Translate read-only S88 input before supervised runtime ingestion.
+
+    This bridge is the CS3-specific edge: its service dependency accepts only
+    logical evidence and never receives contacts, datagrams, or CAN ordering.
+    """
+
+    adapter: MarklinCs3S88Adapter
+    service: RuntimeEvidenceService
+
+    def __post_init__(self) -> None:
+        if self.adapter.binding.topology_revision != self.service.topology_revision:
+            raise ValueError("S88 binding and runtime service revisions must match")
+
+    def receive_poll(
+        self,
+        observations: Mapping[S88Contact, bool],
+        received_at: datetime | None = None,
+    ) -> tuple[OccupancyEvidence, ...]:
+        self.adapter.receive_poll(observations, received_at)
+        if self.adapter.status is EvidenceSourceStatus.FAULTED:
+            return self.service.malformed_input(received_at=received_at)
+        return self.service.accept_baseline(self.adapter.snapshot(), received_at)
+
+    def receive_event(
+        self,
+        contact: S88Contact,
+        active: object,
+        order: int,
+        received_at: datetime | None = None,
+        *,
+        redelivered: bool = False,
+    ) -> tuple[OccupancyEvidence, ...]:
+        self.adapter.receive_event(contact, active, received_at)
+        if self.adapter.status is EvidenceSourceStatus.FAULTED:
+            return self.service.malformed_input(received_at=received_at)
+        source = self.adapter.binding.sources.get(contact)
+        if source is None:
+            return self.service.snapshot()
+        observation = next(
+            item for item in self.adapter.snapshot() if item.zone_id == source.zone_id
+        )
+        return self.service.accept_update(
+            (observation,), order, received_at, redelivered=redelivered
+        )
+
+    def connection_lost(
+        self,
+        detail: str = "S88 gateway unavailable",
+        received_at: datetime | None = None,
+    ) -> tuple[OccupancyEvidence, ...]:
+        self.adapter.connection_lost(detail)
+        return self.service.transport_lost(detail, received_at)
 
 
 def _decode_s88_event(datagram: bytes) -> tuple[S88Contact, bool]:

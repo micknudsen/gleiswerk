@@ -27,6 +27,7 @@ gleiswerk --version
 gleiswerk layout validate layout.yaml
 gleiswerk layout compatibility layout.yaml
 gleiswerk layout reservations layout.yaml operations.yaml
+gleiswerk runtime-evidence diagnose runtime-evidence.yaml
 gleiswerk commissioning verify layout.yaml installation-binding.yaml \
   cs3-capture.yaml occupancy-expectations.yaml --live-hardware
 ```
@@ -42,6 +43,10 @@ The opt-in [hardware commissioning workflow](docs/commissioning-cli-workflow.md)
 checks a supervised, read-only CS3+ and S88 capture against a revision-matched
 Installation Binding. It does not command hardware or grant permission for a
 real train to move.
+
+The [runtime evidence diagnostics workflow](docs/runtime-evidence-diagnostics.md)
+reports the deterministic health and provenance of offline runtime-evidence
+scenarios. It does not connect to or command hardware.
 
 The package can also be invoked as a Python module:
 

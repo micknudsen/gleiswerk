@@ -26,6 +26,7 @@ nav:
   - RoutePlan compatibility contract: routeplan-compatibility-contract.md
   - Route reservation contract: route-reservation-contract.md
   - Logical evidence contract: logical-evidence-contract.md
+  - Runtime evidence diagnostics: runtime-evidence-diagnostics.md
   - Movement-authority contract: movement-authority-contract.md
   - Reservation CLI workflow: reservation-cli-workflow.md
   - Hardware commissioning: commissioning-cli-workflow.md
@@ -41,6 +42,7 @@ nav:
       - v0.0.8: releases/v0.0.8.md
       - v0.0.9: releases/v0.0.9.md
       - v0.0.10: releases/v0.0.10.md
+      - v0.0.11: releases/v0.0.11.md
   - Development: development.md
   - Research:
       - Märklin CS3+ commissioning interface: research/marklin-cs3-commissioning-interface.md
@@ -62,3 +64,4 @@ nav:
       - First feedback controller and transport: adr/0014-first-feedback-controller-and-transport.md
       - Märklin feedback binding and evidence trust contract: adr/0015-marklin-feedback-binding-and-evidence-trust.md
       - Command-acknowledged turnout-position assumptions: adr/0016-command-acknowledged-turnout-assumptions.md
+      - Runtime evidence-ingestion boundary: adr/0017-runtime-evidence-ingestion-boundary.md

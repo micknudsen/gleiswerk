@@ -64,3 +64,34 @@ The returned `EvidenceValidationResult` carries qualified observations and
 stable `EvidenceRejection` values with logical targets and source IDs. Its
 `is_usable` property is true only when no prerequisite was rejected. Neither
 the validator nor its result knows controller addresses or commands devices.
+
+## Runtime ingestion boundary
+
+`RuntimeEvidenceService` is the controller-independent, supervised port for
+logical occupancy evidence. It owns transport receipt, source health, session
+ordering, and recovery; the evidence validator remains a pure evaluator of the
+service's supplied snapshot. Startup, missing input, malformed input, duplicate
+logical targets, and input whose ordering cannot be established are unavailable
+evidence, never the last known clear state. Only a complete, revision-matched
+baseline can make a session available after startup or fault.
+
+An adapter calls `accept_baseline()` with every configured target, then calls
+`accept_update()` only with a strictly increasing adapter-established order.
+The same update may be redelivered only when the adapter declares and proves it
+is identical to the most recently applied update. Transport loss and malformed
+input call the corresponding fault methods. A fault clears every value and a
+later event alone cannot recover it.
+
+`RuntimeEvidenceDiagnostics` records logical source IDs, topology revision,
+session identity, receipt time, health, and a stable fault reason. Controller
+adapters translate controller-specific sequence numbers and protocol errors
+before the port; the core never receives a CS3 address, CAN frame, UDP
+datagram, or protocol ordering token. `MarklinCs3S88RuntimeBridge` is the
+read-only CS3 edge for the existing S88 adapter. The simulator and protocol
+emulators exercise the same port using deterministic clocks and explicitly
+supplied baselines, updates, losses, and faults. ADR 0017 defines the lifecycle
+and safety contract in full.
+
+The [runtime evidence diagnostics](runtime-evidence-diagnostics.md) workflow
+exercises this same service contract offline and reports its health and
+provenance without connecting to a controller.

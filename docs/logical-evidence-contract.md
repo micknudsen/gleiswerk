@@ -91,3 +91,7 @@ read-only CS3 edge for the existing S88 adapter. The simulator and protocol
 emulators exercise the same port using deterministic clocks and explicitly
 supplied baselines, updates, losses, and faults. ADR 0017 defines the lifecycle
 and safety contract in full.
+
+The [runtime evidence diagnostics](runtime-evidence-diagnostics.md) workflow
+exercises this same service contract offline and reports its health and
+provenance without connecting to a controller.

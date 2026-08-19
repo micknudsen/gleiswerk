@@ -63,6 +63,158 @@ def test_commissioning_capture_requires_explicit_live_hardware_acknowledgement()
     )
 
 
+def test_runtime_evidence_diagnose_reports_healthy_provenance(tmp_path: Path) -> None:
+    scenario = tmp_path / "healthy.yaml"
+    scenario.write_text(
+        """topology-revision: demo-revision
+targets:
+  - {zone: platform, source: platform-s88}
+  - {zone: siding, source: siding-s88}
+operations:
+  - operation: baseline
+    observations:
+      - {zone: platform, state: clear}
+      - {zone: siding, state: occupied}
+""",
+        encoding="utf-8",
+    )
+
+    result = run_module("runtime-evidence", "diagnose", str(scenario))
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+    assert yaml.safe_load(result.stdout) == {
+        "topology-revision": "demo-revision",
+        "session": 1,
+        "source-status": "available",
+        "complete": True,
+        "sources": [
+            {
+                "zone": "platform",
+                "source": "platform-s88",
+                "status": "available",
+                "state": "clear",
+                "observed-at-seconds": 0,
+                "freshness": "fresh",
+            },
+            {
+                "zone": "siding",
+                "source": "siding-s88",
+                "status": "available",
+                "state": "occupied",
+                "observed-at-seconds": 0,
+                "freshness": "fresh",
+            },
+        ],
+        "operations": [{"operation": "baseline", "success": True, "at-seconds": 0}],
+    }
+
+
+def test_runtime_evidence_diagnose_recovers_after_transport_loss(
+    tmp_path: Path,
+) -> None:
+    scenario = tmp_path / "recovery.yaml"
+    scenario.write_text(
+        """topology-revision: demo-revision
+maximum-age-seconds: 5
+targets:
+  - {zone: platform, source: platform-s88}
+operations:
+  - operation: baseline
+    observations: [{zone: platform, state: clear}]
+  - {operation: advance-time, seconds: 6}
+  - {operation: transport-lost, detail: gateway disconnected}
+  - operation: baseline
+    observations: [{zone: platform, state: occupied}]
+""",
+        encoding="utf-8",
+    )
+
+    result = run_module("runtime-evidence", "diagnose", str(scenario))
+
+    assert result.returncode == 0
+    report = yaml.safe_load(result.stdout)
+    assert report["session"] == 2
+    assert report["source-status"] == "available"
+    assert report["complete"] is True
+    assert report["sources"][0]["state"] == "occupied"
+    assert report["sources"][0]["freshness"] == "fresh"
+
+
+def test_runtime_evidence_diagnose_fails_closed_for_incomplete_baseline(
+    tmp_path: Path,
+) -> None:
+    scenario = tmp_path / "incomplete.yaml"
+    scenario.write_text(
+        """topology-revision: demo-revision
+targets:
+  - {zone: platform, source: platform-s88}
+  - {zone: siding, source: siding-s88}
+operations:
+  - operation: baseline
+    observations: [{zone: platform, state: clear}]
+""",
+        encoding="utf-8",
+    )
+
+    result = run_module("runtime-evidence", "diagnose", str(scenario))
+
+    assert result.returncode == 1
+    report = yaml.safe_load(result.stdout)
+    assert report["source-status"] == "faulted"
+    assert report["complete"] is False
+    assert report["fault"] == "incomplete-baseline"
+    assert [source["status"] for source in report["sources"]] == [
+        "faulted",
+        "faulted",
+    ]
+
+
+def test_runtime_evidence_diagnose_reports_stale_evidence(tmp_path: Path) -> None:
+    scenario = tmp_path / "stale.yaml"
+    scenario.write_text(
+        """topology-revision: demo-revision
+maximum-age-seconds: 5
+targets: [{zone: platform, source: platform-s88}]
+operations:
+  - operation: baseline
+    observations: [{zone: platform, state: clear}]
+  - {operation: advance-time, seconds: 6}
+""",
+        encoding="utf-8",
+    )
+
+    result = run_module("runtime-evidence", "diagnose", str(scenario))
+
+    assert result.returncode == 1
+    report = yaml.safe_load(result.stdout)
+    assert report["source-status"] == "available"
+    assert report["complete"] is True
+    assert report["sources"][0]["freshness"] == "stale"
+
+
+def test_runtime_evidence_diagnose_reports_malformed_input(tmp_path: Path) -> None:
+    scenario = tmp_path / "malformed.yaml"
+    scenario.write_text(
+        """topology-revision: demo-revision
+targets: [{zone: platform, source: platform-s88}]
+operations:
+  - operation: baseline
+    observations: [{zone: platform, state: clear}]
+  - {operation: malformed-input, detail: invalid adapter payload}
+""",
+        encoding="utf-8",
+    )
+
+    result = run_module("runtime-evidence", "diagnose", str(scenario))
+
+    assert result.returncode == 1
+    report = yaml.safe_load(result.stdout)
+    assert report["source-status"] == "faulted"
+    assert report["fault"] == "malformed-input"
+    assert report["fault-detail"] == "invalid adapter payload"
+
+
 def test_version_reports_distribution_version() -> None:
     result = run_module("--version")
 

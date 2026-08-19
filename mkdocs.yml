@@ -26,6 +26,7 @@ nav:
   - RoutePlan compatibility contract: routeplan-compatibility-contract.md
   - Route reservation contract: route-reservation-contract.md
   - Logical evidence contract: logical-evidence-contract.md
+  - Runtime evidence diagnostics: runtime-evidence-diagnostics.md
   - Movement-authority contract: movement-authority-contract.md
   - Reservation CLI workflow: reservation-cli-workflow.md
   - Hardware commissioning: commissioning-cli-workflow.md

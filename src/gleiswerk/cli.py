@@ -22,6 +22,7 @@ from gleiswerk.commissioning import (
 )
 from gleiswerk.evidence import (
     DevicePositionEvidence,
+    EvidenceFreshness,
     EvidenceFreshnessBasis,
     EvidenceSourceId,
     EvidenceSourceStatus,
@@ -61,6 +62,10 @@ from gleiswerk.route_reservations import (
     ReservationManager,
     ReservationOwner,
     TopologyRevisionMismatch,
+)
+from gleiswerk.runtime_evidence import (
+    RuntimeEvidenceService,
+    RuntimeEvidenceTarget,
 )
 from gleiswerk.topology import (
     ClaimResource,
@@ -194,6 +199,20 @@ def build_parser() -> ArgumentParser:
         default=30,
         help="Maximum permitted age for CAPTURE (default: 30).",
     )
+    runtime_evidence = commands.add_parser(
+        "runtime-evidence",
+        help="Run an offline supervised runtime-evidence diagnostic scenario.",
+    )
+    runtime_evidence_commands = runtime_evidence.add_subparsers(
+        dest="runtime_evidence_command"
+    )
+    diagnose = runtime_evidence_commands.add_parser(
+        "diagnose",
+        help="Report deterministic health and provenance from an offline scenario.",
+    )
+    diagnose.add_argument(
+        "scenario", metavar="SCENARIO", help="Path to a runtime-evidence YAML scenario."
+    )
     return parser
 
 
@@ -229,6 +248,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             arguments.live_hardware,
             arguments.maximum_age_seconds,
         )
+    if (
+        arguments.command == "runtime-evidence"
+        and arguments.runtime_evidence_command == "diagnose"
+    ):
+        return _diagnose_runtime_evidence(arguments.scenario)
     return 0
 
 
@@ -327,6 +351,309 @@ def _report_layout_compatibility(file: str) -> int:
 
     print(_dump_report(_compatibility_document(analysis)), end="")
     return 0
+
+
+class RuntimeEvidenceScenarioError(ValueError):
+    """A runtime-evidence diagnostic scenario is outside the bounded schema."""
+
+
+@dataclass(frozen=True, slots=True)
+class _RuntimeEvidenceScenario:
+    topology_revision: str
+    targets: tuple[RuntimeEvidenceTarget, ...]
+    operations: tuple[dict[str, object], ...]
+    maximum_age_seconds: int = 30
+
+
+class _RuntimeEvidenceClock:
+    """A deterministic clock for an offline runtime-evidence diagnostic."""
+
+    def __init__(self) -> None:
+        self._seconds = 0
+
+    def __call__(self) -> datetime:
+        return datetime(2000, 1, 1, tzinfo=UTC) + timedelta(seconds=self._seconds)
+
+    def advance(self, seconds: int) -> None:
+        self._seconds += seconds
+
+    @property
+    def seconds(self) -> int:
+        return self._seconds
+
+
+def _diagnose_runtime_evidence(scenario_file: str) -> int:
+    """Run an explicit offline scenario through the supervised service port."""
+    try:
+        scenario = _load_runtime_evidence_scenario(Path(scenario_file))
+    except (RuntimeEvidenceScenarioError, OSError) as error:
+        print(f"ERROR {scenario_file}: {error}", file=sys.stderr)
+        return 1
+
+    clock = _RuntimeEvidenceClock()
+    service = RuntimeEvidenceService(
+        scenario.topology_revision, scenario.targets, clock=clock
+    )
+    targets = {str(target.zone_id): target for target in scenario.targets}
+    operations: list[dict[str, object]] = []
+    for operation in scenario.operations:
+        kind = cast(str, operation["operation"])
+        if kind == "advance-time":
+            seconds = cast(int, operation["seconds"])
+            clock.advance(seconds)
+            operations.append(
+                {
+                    "operation": kind,
+                    "seconds": seconds,
+                    "success": True,
+                    "at-seconds": clock.seconds,
+                }
+            )
+            continue
+        if kind in {"baseline", "update"}:
+            observations = _runtime_evidence_observations(
+                cast(tuple[dict[str, str], ...], operation["observations"]),
+                targets,
+                scenario.topology_revision,
+                clock(),
+            )
+            if kind == "baseline":
+                service.accept_baseline(observations, clock())
+            else:
+                service.accept_update(
+                    observations,
+                    cast(int, operation["order"]),
+                    clock(),
+                    redelivered=cast(bool, operation.get("redelivered", False)),
+                )
+            operations.append(
+                {
+                    "operation": kind,
+                    "success": service.diagnostics.source_status
+                    is EvidenceSourceStatus.AVAILABLE,
+                    "at-seconds": clock.seconds,
+                }
+            )
+            continue
+        detail = cast(str, operation.get("detail", ""))
+        if kind == "transport-lost":
+            if detail:
+                service.transport_lost(detail, clock())
+            else:
+                service.transport_lost(received_at=clock())
+        else:
+            if detail:
+                service.malformed_input(detail, clock())
+            else:
+                service.malformed_input(received_at=clock())
+        operations.append(
+            {"operation": kind, "success": False, "at-seconds": clock.seconds}
+        )
+
+    diagnostics = service.diagnostics
+    freshness = EvidenceFreshnessBasis(
+        clock(), timedelta(seconds=scenario.maximum_age_seconds)
+    )
+    snapshot = service.snapshot()
+    sources = [
+        {
+            "zone": str(item.zone_id),
+            "source": str(item.source_id),
+            "status": item.source_status.value,
+            "state": item.state.value if item.state is not None else None,
+            "observed-at-seconds": int(
+                (item.observed_at - datetime(2000, 1, 1, tzinfo=UTC)).total_seconds()
+            ),
+            "freshness": freshness.qualify(item.observed_at).value,
+        }
+        for item in snapshot
+    ]
+    complete = diagnostics.source_status is EvidenceSourceStatus.AVAILABLE and len(
+        snapshot
+    ) == len(scenario.targets)
+    healthy = complete and all(
+        item["freshness"] == EvidenceFreshness.FRESH.value for item in sources
+    )
+    report: dict[str, object] = {
+        "topology-revision": diagnostics.topology_revision,
+        "session": diagnostics.session_id,
+        "source-status": diagnostics.source_status.value,
+        "complete": complete,
+        "sources": sources,
+        "operations": operations,
+    }
+    if diagnostics.fault is not None:
+        report["fault"] = diagnostics.fault.value
+        report["fault-detail"] = diagnostics.detail
+    print(_dump_report(report), end="")
+    return 0 if healthy else 1
+
+
+def _runtime_evidence_observations(
+    observations: tuple[dict[str, str], ...],
+    targets: Mapping[str, RuntimeEvidenceTarget],
+    topology_revision: str,
+    observed_at: datetime,
+) -> tuple[OccupancyEvidence, ...]:
+    return tuple(
+        OccupancyEvidence(
+            OccupancyZoneId(item["zone"]),
+            topology_revision,
+            targets[item["zone"]].source_id,
+            EvidenceSourceStatus.AVAILABLE,
+            observed_at,
+            OccupancyState(item["state"]),
+        )
+        for item in observations
+    )
+
+
+def _load_runtime_evidence_scenario(file: Path) -> _RuntimeEvidenceScenario:
+    """Load the intentionally small, controller-free diagnostic schema."""
+    try:
+        document: object = yaml.safe_load(file.read_text(encoding="utf-8"))
+    except yaml.YAMLError as error:
+        raise RuntimeEvidenceScenarioError(f"invalid YAML: {error}") from error
+    if not isinstance(document, Mapping):
+        raise RuntimeEvidenceScenarioError("expected a mapping")
+    mapping = cast(Mapping[object, object], document)
+    allowed = {"topology-revision", "targets", "operations", "maximum-age-seconds"}
+    if (
+        not {"topology-revision", "targets", "operations"} <= set(mapping)
+        or not set(mapping) <= allowed
+    ):
+        raise RuntimeEvidenceScenarioError(
+            "requires topology-revision, targets, operations, and optional maximum-age-seconds"
+        )
+    revision = _nonempty_string(mapping.get("topology-revision"), "topology-revision")
+    maximum_age = 30
+    if "maximum-age-seconds" in mapping:
+        maximum_age = _nonnegative_seconds(
+            mapping["maximum-age-seconds"], "maximum-age-seconds"
+        )
+    raw_targets = mapping["targets"]
+    if not isinstance(raw_targets, list) or not raw_targets:
+        raise RuntimeEvidenceScenarioError("targets must be a nonempty list")
+    targets: list[RuntimeEvidenceTarget] = []
+    for index, raw_target in enumerate(cast(list[object], raw_targets)):
+        location = f"targets[{index}]"
+        if not isinstance(raw_target, Mapping):
+            raise RuntimeEvidenceScenarioError(
+                f"{location} requires exactly zone and source"
+            )
+        target_mapping = cast(Mapping[object, object], raw_target)
+        if set(target_mapping) != {"zone", "source"}:
+            raise RuntimeEvidenceScenarioError(
+                f"{location} requires exactly zone and source"
+            )
+        targets.append(
+            RuntimeEvidenceTarget(
+                OccupancyZoneId(
+                    _nonempty_string(target_mapping.get("zone"), f"{location}.zone")
+                ),
+                EvidenceSourceId(
+                    _nonempty_string(target_mapping.get("source"), f"{location}.source")
+                ),
+            )
+        )
+    known_zones = {str(target.zone_id) for target in targets}
+    raw_operations = mapping["operations"]
+    if not isinstance(raw_operations, list):
+        raise RuntimeEvidenceScenarioError("operations must be a list")
+    operations: list[dict[str, object]] = []
+    for index, raw_operation in enumerate(cast(list[object], raw_operations)):
+        location = f"operations[{index}]"
+        if not isinstance(raw_operation, Mapping):
+            raise RuntimeEvidenceScenarioError(f"{location} must be a mapping")
+        operation_mapping = cast(Mapping[object, object], raw_operation)
+        operation = operation_mapping.get("operation")
+        if operation in {"baseline", "update"}:
+            required = {"operation", "observations"}
+            if operation == "update":
+                required.add("order")
+            optional: set[str] = {"redelivered"} if operation == "update" else set()
+            if (
+                not required <= set(operation_mapping)
+                or not set(operation_mapping) <= required | optional
+            ):
+                raise RuntimeEvidenceScenarioError(f"{location} has unsupported fields")
+            values = _runtime_evidence_scenario_observations(
+                operation_mapping.get("observations"), location, known_zones
+            )
+            value: dict[str, object] = {"operation": operation, "observations": values}
+            if operation == "update":
+                order = operation_mapping.get("order")
+                if not isinstance(order, int) or isinstance(order, bool):
+                    raise RuntimeEvidenceScenarioError(
+                        f"{location}.order must be an integer"
+                    )
+                value["order"] = order
+                if "redelivered" in operation_mapping:
+                    if not isinstance(operation_mapping["redelivered"], bool):
+                        raise RuntimeEvidenceScenarioError(
+                            f"{location}.redelivered must be true or false"
+                        )
+                    value["redelivered"] = operation_mapping["redelivered"]
+            operations.append(value)
+        elif operation == "advance-time":
+            if set(operation_mapping) != {"operation", "seconds"}:
+                raise RuntimeEvidenceScenarioError(
+                    f"{location} advance-time requires exactly operation and seconds"
+                )
+            operations.append(
+                {
+                    "operation": operation,
+                    "seconds": _nonnegative_seconds(
+                        operation_mapping.get("seconds"), f"{location}.seconds"
+                    ),
+                }
+            )
+        elif operation in {"transport-lost", "malformed-input"}:
+            if set(operation_mapping) not in ({"operation"}, {"operation", "detail"}):
+                raise RuntimeEvidenceScenarioError(f"{location} has unsupported fields")
+            detail = operation_mapping.get("detail", "")
+            if not isinstance(detail, str):
+                raise RuntimeEvidenceScenarioError(
+                    f"{location}.detail must be a string"
+                )
+            operations.append({"operation": operation, "detail": detail})
+        else:
+            raise RuntimeEvidenceScenarioError(f"{location}.operation is not supported")
+    try:
+        return _RuntimeEvidenceScenario(
+            revision, tuple(targets), tuple(operations), maximum_age
+        )
+    except ValueError as error:
+        raise RuntimeEvidenceScenarioError(str(error)) from error
+
+
+def _runtime_evidence_scenario_observations(
+    value: object, location: str, known_zones: set[str]
+) -> tuple[dict[str, str], ...]:
+    if not isinstance(value, list):
+        raise RuntimeEvidenceScenarioError(f"{location}.observations must be a list")
+    observations: list[dict[str, str]] = []
+    for index, item in enumerate(cast(list[object], value)):
+        item_location = f"{location}.observations[{index}]"
+        if not isinstance(item, Mapping):
+            raise RuntimeEvidenceScenarioError(
+                f"{item_location} requires exactly zone and state"
+            )
+        item_mapping = cast(Mapping[object, object], item)
+        if set(item_mapping) != {"zone", "state"}:
+            raise RuntimeEvidenceScenarioError(
+                f"{item_location} requires exactly zone and state"
+            )
+        zone = _nonempty_string(item_mapping.get("zone"), f"{item_location}.zone")
+        if zone not in known_zones:
+            raise RuntimeEvidenceScenarioError(f"{item_location}.zone is not a target")
+        state = item_mapping.get("state")
+        if state not in {"clear", "occupied"}:
+            raise RuntimeEvidenceScenarioError(
+                f"{item_location}.state must be 'clear' or 'occupied'"
+            )
+        observations.append({"zone": zone, "state": cast(str, state)})
+    return tuple(observations)
 
 
 def _evaluate_reservation_operations(layout_file: str, operations_file: str) -> int:
@@ -791,6 +1118,12 @@ def _load_reservation_operations(
 def _positive_seconds(value: object, location: str) -> int:
     if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
         raise ReservationOperationsError(f"{location} must be a positive integer")
+    return value
+
+
+def _nonnegative_seconds(value: object, location: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise RuntimeEvidenceScenarioError(f"{location} must be a nonnegative integer")
     return value
 
 
